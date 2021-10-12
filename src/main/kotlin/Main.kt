@@ -79,7 +79,7 @@ fun tictactoe(boardSize: Int) {
     var gameState = GameState(Board(emptyMap(), boardSize), Player.One, Player.None, boardSize * boardSize)
 
     while (true) {
-        drawBoard(gameState.board)
+        print(drawBoard(gameState.board))
         if (gameState.winner != Player.None) {
             println("Player ${gameState.winner} wins!")
             break
@@ -217,13 +217,13 @@ fun checkForWinner(board: Board): Player {
 }
 
 /**
- * Draw the board to screen
+ * Transform the board into a string for display
  *  0,0 is the bottom left corner
  *  n,n is the top right corner
  *
  *  todo handle boards where n > 9
  */
-fun drawBoard(board: Board) {
+fun drawBoard(board: Board): String {
     val lastIndex = board.bounds - 1
     val buffer = StringBuilder()
 
@@ -257,5 +257,5 @@ fun drawBoard(board: Board) {
     }
     buffer.append("\n")
 
-    print(buffer.toString())
+    return buffer.toString()
 }
