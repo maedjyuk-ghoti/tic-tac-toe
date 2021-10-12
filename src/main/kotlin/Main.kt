@@ -90,22 +90,9 @@ fun tictactoe(boardSize: Int) {
             break
         }
 
-        gameState = turn(gameState)
-            .map { checkForWinner(it) to it }
-            .fold(
-                success = { (winner, updatedBoard) ->
-                    GameState(
-                        board = updatedBoard,
-                        currentPlayer = Player.nextPlayer(gameState.currentPlayer),
-                        winner = winner,
-                        numAvailableMoves = gameState.numAvailableMoves - 1
-                    )
-                },
-                failure = { throwable ->
-                    println(throwable.message)
-                    gameState
-                }
-            )
+        turn(gameState)
+            .onSuccess { newGameState -> gameState = newGameState }
+            .onFailure { throwable -> println(throwable.message) }
     }
 }
 
@@ -114,11 +101,20 @@ fun tictactoe(boardSize: Int) {
  *
  * @return A [Result] with a new [Board] or a [Throwable]
  */
-fun turn(gameState: GameState): Result<Board, Throwable> {
+fun turn(gameState: GameState): Result<GameState, Throwable> {
     return getInput("Player ${gameState.currentPlayer.number}, enter the square you want to select as `x y`: ")
         .map { Move(it, gameState.currentPlayer) }
         .andThen { validate(MoveRequest(it, gameState.board)) }
         .map { makeMove(it) }
+        .map { checkForWinner(it) to it }
+        .map { (winner, updatedBoard) ->
+                GameState(
+                    board = updatedBoard,
+                    currentPlayer = Player.nextPlayer(gameState.currentPlayer),
+                    winner = winner,
+                    numAvailableMoves = gameState.numAvailableMoves - 1
+                )
+            }
 }
 
 /**
