@@ -1,4 +1,5 @@
 import com.github.michaelbull.result.*
+import kotlin.math.log10
 
 fun main(args: Array<String>) {
     println("Hello World!")
@@ -6,7 +7,7 @@ fun main(args: Array<String>) {
     // Try adding program arguments at Run/Debug configuration
     println("Program arguments: ${args.joinToString()}")
 
-    tictactoe(3)
+    tictactoe(15)
 }
 
 /**
@@ -229,7 +230,7 @@ fun drawBoard(board: Board): String {
 
     for (i in lastIndex downTo 0) {
         // draw row number
-        buffer.append("$i ")
+        buffer.append(appendWithSpaceAfter(2, i))
 
         for (j in 0..lastIndex) {
             val square = board.grid[Coordinates(j, i)] ?: Player.None
@@ -253,9 +254,37 @@ fun drawBoard(board: Board): String {
 
     // draw column number
     for (h in 0..lastIndex) {
-        buffer.append("   $h")
+        buffer.append(appendWithSpaceBefore(4, h))
     }
     buffer.append("\n")
+
+    return buffer.toString()
+}
+
+fun appendWithSpaceBefore(spaceCount: Int, number: Int): String {
+    // log10(0) is undefined, make a special case for it
+    val magnitude = if (number == 0) 1 else (log10(number.toDouble()).toInt() + 1)
+
+    if (spaceCount < magnitude) return ""
+
+    val buffer = StringBuilder()
+
+    for (i in 0 until (spaceCount - magnitude)) buffer.append(' ')
+    buffer.append(number)
+
+    return buffer.toString()
+}
+
+fun appendWithSpaceAfter(spaceCount: Int, number: Int): String {
+    // log10(0) is undefined, make a special case for it
+    val magnitude = if (number == 0) 1 else (log10(number.toDouble()).toInt() + 1)
+
+    if (spaceCount < magnitude) return ""
+
+    val buffer = StringBuilder()
+
+    buffer.append(number)
+    for (i in 0 until (spaceCount - magnitude)) buffer.append(' ')
 
     return buffer.toString()
 }
