@@ -17,6 +17,12 @@ enum class Player(val number: Int, val symbol: Char) {
     Two(2, 'O');
 
     companion object {
+        fun previousPlayer(player: Player): Player {
+            val index = values().indexOf(player)
+            val nextIndex = if (index - 1 > values().lastIndex) 1 else index - 1
+            return values()[nextIndex]
+        }
+
         /**
          * Given a player, return the next player
          */

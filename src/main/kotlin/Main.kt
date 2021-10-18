@@ -7,15 +7,24 @@ fun main(args: Array<String>) {
     // Try adding program arguments at Run/Debug configuration
     println("Program arguments: ${args.joinToString()}")
 
-    tictactoe(15)
+    tictactoe(3)
 }
+
+val actions = """
+    |Actions:
+    |   Move: m [x y]
+    |   Undo: u
+    |
+""".trimMargin()
 
 /** Start a game of tic-tac-toe with a board of size [boardSize] **/
 fun tictactoe(boardSize: Int) {
     var gameState = GameState(Board(emptyList(), boardSize), Player.One, Player.None, boardSize * boardSize)
+    println("Welcome to TicTacToe")
+    println(actions)
 
     while (true) {
-        print(drawBoard(gameState.board))
+        println(drawBoard(gameState.board))
         if (gameState.winner != Player.None) {
             println("Player ${gameState.winner} wins!")
             break
@@ -28,7 +37,10 @@ fun tictactoe(boardSize: Int) {
 
         turn(gameState, ::print, ::readLine)
             .onSuccess { newGameState -> gameState = newGameState }
-            .onFailure { throwable -> println(throwable.message) }
+            .onFailure { throwable ->
+                println(throwable.message)
+                println(actions)
+            }
     }
 }
 
@@ -38,17 +50,11 @@ fun tictactoe(boardSize: Int) {
  * @return A [Result] with a new [Board] or a [Throwable]
  */
 fun turn(gameState: GameState, printOut: (String) -> Unit, readIn: () -> String?): Result<GameState, Throwable> {
-    val ask = "Player ${gameState.currentPlayer.number}, enter the square you want to select as `x y`: "
+    val ask = "Player %s's turn: ".format(gameState.currentPlayer.number)
 
     return requestInput(ask, printOut, readIn)
-        .andThen { input -> parse(input) }
-        .andThen { coordinates -> validate(MoveRequest(coordinates, gameState.currentPlayer, gameState.board.moves.count()), gameState.board) }
-        .map { request -> makeMove(request, gameState.board) }
-        .map { updatedBoard -> checkForWinner(updatedBoard) to updatedBoard }
-        .map { (winner, updatedBoard) ->
-            val updateAvailableMoves = gameState.numAvailableMoves - 1
-            GameState(updatedBoard, Player.nextPlayer(gameState.currentPlayer), winner, updateAvailableMoves)
-        }
+        .map { input -> Action.getAction(input) }
+        .andThen { action -> action.act(gameState) }
 }
 
 /**
