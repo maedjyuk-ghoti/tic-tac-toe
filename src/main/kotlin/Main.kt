@@ -45,131 +45,6 @@ fun tictactoe(boardSize: Int) {
 }
 
 /**
- * Take a turn in the current game state.
- *
- * @return A [Result] with a new [Board] or a [Throwable]
- */
-fun turn(gameState: GameState, printOut: (String) -> Unit, readIn: () -> String?): Result<GameState, Throwable> {
-    val ask = "Player %s's turn: ".format(gameState.currentPlayer.number)
-
-    return requestInput(ask, printOut, readIn)
-        .map { input -> Action.getAction(input) }
-        .andThen { action -> action.act(gameState) }
-}
-
-/**
- * Display [ask] and retrieve input from the command line.
- *
- * @param ask A string to display on command line before waiting for input
- * @param printOut A method to print a string out
- * @param readIn A method that reads a string in
- * @return A [Result] containing the [String] entered by the [Player] or a [Throwable]
- */
-fun requestInput(ask: String, printOut: (String) -> Unit, readIn: () -> String?): Result<String, Throwable> {
-    printOut(ask)
-    val input = readIn() ?: return Err(Throwable("No input received"))
-    return Ok(input)
-}
-
-/**
- * Parse a string for coordinates
- *
- * @param input A string that may contain usable info for tictactoe
- * @return A [Result] containing the [Coordinates] entered by the [Player] or a [Throwable]
- */
-fun parse(input: String): Result<Coordinates, Throwable> {
-    val split = input.split(" ")
-    if (split.size != 2) return Err(Throwable("Input needs to be in the form of `x y` coordinates"))
-
-    val x = split[0].toIntOrNull() ?: return Err(Throwable("x coordinate was not a valid number"))
-    val y = split[1].toIntOrNull() ?: return Err(Throwable("y coordinate was not a valid number"))
-
-    return Ok(Coordinates(x, y))
-}
-
-/**
- * Checks that a [MoveRequest] is valid
- *
- * @param request The requested move to evaluate
- * @return A [Result] containing a validated [MoveRequest] or a [Throwable]
- */
-fun validate(request: MoveRequest, board: Board): Result<MoveRequest, Throwable> {
-    if (request.coordinates.x >= board.bounds || request.coordinates.x < 0) return Err(Throwable("x coordinate is outside the bounds"))
-    if (request.coordinates.y >= board.bounds || request.coordinates.y < 0) return Err(Throwable("y coordinate is outside the bounds"))
-    if (board.moves.associateBy(MoveRequest::coordinates).contains(request.coordinates)) return Err(Throwable("That square has already been played"))
-    return Ok(request)
-}
-
-/** Play the [MoveRequest] and return the new [Board] **/
-fun makeMove(request: MoveRequest, board: Board): Board {
-    val updatedMoves = board.moves.plus(request)
-    return Board(updatedMoves, board.bounds)
-}
-
-/** Check the [Board] for a winning player. Return [Player.None] if no winner is found. **/
-fun checkForWinner(board: Board): Player {
-    val grid = board.moves.associate { request -> request.coordinates to request.player }
-
-    // check all x
-    for (i in 0 until board.bounds) {
-        var lastPlayerFound = Player.None
-        for (j in 0 until board.bounds) {
-            val square = grid[Coordinates(i, j)]
-            if (square == null) break // square isn't used, can't win on this column
-            else if (lastPlayerFound == Player.None) lastPlayerFound = square // 1st used square found
-            else if (lastPlayerFound != square) break // a player doesn't own consecutive squares
-            else if (lastPlayerFound == square) { // a player owns consecutive squares
-                if (j == board.bounds - 1) return lastPlayerFound
-                else continue
-            }
-        }
-    }
-
-    // check all y
-    for (i in 0 until board.bounds) {
-        var lastPlayerFound = Player.None
-        for (j in 0 until board.bounds) {
-            val square = grid[Coordinates(j, i)]
-            if (square == null) break // square isn't used, can't win on this row
-            else if (lastPlayerFound == Player.None) lastPlayerFound = square // 1st used square found
-            else if (lastPlayerFound != square) break // a player doesn't own consecutive squares
-            else if (lastPlayerFound == square) { // a player owns consecutive squares
-                if (j == board.bounds - 1) return lastPlayerFound
-                else continue
-            }
-        }
-    }
-
-    // check diagonals 0,0 -> n,n
-    var lastPlayerFound = Player.None
-    for (i in 0 until board.bounds) {
-        val square = grid[Coordinates(i, i)]
-        if (square == null) break // square isn't used, can't win on this row
-        else if (lastPlayerFound == Player.None) lastPlayerFound = square // 1st used square found
-        else if (lastPlayerFound != square) break // a player doesn't own consecutive squares
-        else if (lastPlayerFound == square) { // a player owns consecutive squares
-            if (i == board.bounds - 1) return lastPlayerFound
-            else continue
-        }
-    }
-
-    // check diagonals 0,n -> n,0
-    lastPlayerFound = Player.None
-    for (i in 0 until board.bounds) {
-        val square = grid[Coordinates(i, board.bounds - i - 1)]
-        if (square == null) break // square isn't used, can't win on this row
-        else if (lastPlayerFound == Player.None) lastPlayerFound = square // 1st used square found
-        else if (lastPlayerFound != square) break // a player doesn't own consecutive squares
-        else if (lastPlayerFound == square) { // a player owns consecutive squares
-            if (i == board.bounds - 1) return lastPlayerFound
-            else continue
-        }
-    }
-
-    return Player.None
-}
-
-/**
  * Transform the board into a string for display
  *  0,0 is the bottom left corner
  *  n,n is the top right corner
@@ -242,7 +117,29 @@ fun appendWithSpaceAfter(spaceCount: Int, number: Int): String {
     return buffer.toString()
 }
 
-fun undoMove(board: Board): Result<Board, Throwable> {
-    if (board.moves.isEmpty()) return Err(Throwable("No moves to undo"))
-    return Ok(Board(board.moves.subList(0, board.moves.lastIndex), board.bounds))
+/**
+ * Take a turn in the current game state.
+ *
+ * @return A [Result] with a new [Board] or a [Throwable]
+ */
+fun turn(gameState: GameState, printOut: (String) -> Unit, readIn: () -> String?): Result<GameState, Throwable> {
+    val ask = "Player %s's turn: ".format(gameState.currentPlayer.number)
+
+    return requestInput(ask, printOut, readIn)
+        .map { input -> Action.getAction(input) }
+        .andThen { action -> action.act(gameState) }
+}
+
+/**
+ * Display [ask] and retrieve input from the command line.
+ *
+ * @param ask A string to display on command line before waiting for input
+ * @param printOut A method to print a string out
+ * @param readIn A method that reads a string in
+ * @return A [Result] containing the [String] entered by the [Player] or a [Throwable]
+ */
+fun requestInput(ask: String, printOut: (String) -> Unit, readIn: () -> String?): Result<String, Throwable> {
+    printOut(ask)
+    val input = readIn() ?: return Err(Throwable("No input received"))
+    return Ok(input)
 }
