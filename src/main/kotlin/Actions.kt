@@ -2,38 +2,21 @@ import com.github.michaelbull.result.*
 
 sealed class Action {
     abstract fun act(gameState: GameState): Result<GameState, Throwable>
-
-    companion object {
-        fun getAction(input: String): Action {
-            return when (input[0]) {
-                'm' -> Move(input.substring(1).trim())
-                'u' -> Undo
-                else -> Error("Invalid input")
-            }
-        }
-    }
 }
 
-class Error(private val reason: String) : Action() {
+class Move(private val coordinates: Coordinates) : Action() {
     override fun act(gameState: GameState): Result<GameState, Throwable> {
-        return Err(Throwable(reason))
-    }
-}
-
-class Move(private val input: String) : Action() {
-    override fun act(gameState: GameState): Result<GameState, Throwable> {
-        return parse(input)
-            .andThen { coordinates -> validate(MoveRequest(coordinates, gameState.currentPlayer, gameState.board.moves.count()), gameState.board) }
+        return validate(MoveRequest(coordinates, gameState.currentPlayerInfo, gameState.board.getNextMoveNumber()), gameState.board)
             .map { request -> makeMove(request, gameState.board) }
             .map { updatedBoard -> updatedBoard.checkForWinner() to updatedBoard }
-            .map { (winner, updatedBoard) -> GameState(updatedBoard, Player.nextPlayer(gameState.currentPlayer), winner) }
+            .map { (winner, updatedBoard) -> GameState(updatedBoard, PlayerInfo.nextPlayer(gameState.currentPlayerInfo), winner) }
     }
 }
 
 object Undo : Action() {
     override fun act(gameState: GameState): Result<GameState, Throwable> {
         return gameState.board.undoMove()
-            .map { updatedBoard -> GameState(updatedBoard, Player.previousPlayer(gameState.currentPlayer), gameState.winner) }
+            .map { updatedBoard -> GameState(updatedBoard, PlayerInfo.previousPlayer(gameState.currentPlayerInfo), gameState.winner) }
     }
 }
 
@@ -41,7 +24,7 @@ object Undo : Action() {
  * Parse a string for coordinates
  *
  * @param input A string that may contain usable info for tictactoe
- * @return A [Result] containing the [Coordinates] entered by the [Player] or a [Throwable]
+ * @return A [Result] containing the [Coordinates] entered by the [PlayerInfo] or a [Throwable]
  */
 fun parse(input: String): Result<Coordinates, Throwable> {
     val split = input.split(" ")

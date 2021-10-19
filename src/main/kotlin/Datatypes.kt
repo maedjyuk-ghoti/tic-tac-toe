@@ -2,6 +2,12 @@ import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 
+data class GameOptions(
+    val boardSize: Int,
+    val players: Int,
+    val botLevel: Int
+)
+
 /**
  * A pair of X, Y coordinates.
  *
@@ -15,14 +21,14 @@ data class Coordinates(val x: Int, val y: Int)
  * @param number The player's number
  * @param symbol A symbol to represent the player on the grid
  */
-enum class Player(val number: Int, val symbol: Char) {
+enum class PlayerInfo(val number: Int, val symbol: Char) {
     None(0, ' '),
     One(1, 'X'),
     Two(2, 'O');
 
     companion object {
-        fun previousPlayer(player: Player): Player {
-            val index = values().indexOf(player)
+        fun previousPlayer(playerInfo: PlayerInfo): PlayerInfo {
+            val index = values().indexOf(playerInfo)
             val nextIndex = if (index - 1 > values().lastIndex) 1 else index - 1
             return values()[nextIndex]
         }
@@ -30,8 +36,8 @@ enum class Player(val number: Int, val symbol: Char) {
         /**
          * Given a player, return the next player
          */
-        fun nextPlayer(player: Player): Player {
-            val index = values().indexOf(player)
+        fun nextPlayer(playerInfo: PlayerInfo): PlayerInfo {
+            val index = values().indexOf(playerInfo)
             val nextIndex = if (index + 1 > values().lastIndex) 1 else index + 1
             return values()[nextIndex]
         }
@@ -42,9 +48,9 @@ enum class Player(val number: Int, val symbol: Char) {
  * A move made on a board.
  *
  * @param coordinates the coordinates of the move
- * @param player the player who made the move
+ * @param playerInfo the player who made the move
  */
-data class MoveRequest(val coordinates: Coordinates, val player: Player, val number: Int)
+data class MoveRequest(val coordinates: Coordinates, val playerInfo: PlayerInfo, val number: Int)
 
 data class Board(val moves: List<MoveRequest>, val bounds: Int) {
     fun getRemainingCoordinates(): List<Coordinates> {
@@ -67,23 +73,23 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
     }
 
     /**
-     * Check the [Board] for a winning player. Return [Player.None] if no winner is found.
+     * Check the [Board] for a winning player. Return [PlayerInfo.None] if no winner is found.
      * Currently, only works for diagonal wins on an NxN board where N is even.
      *  Fix would be to check the 2 diagonals extra diagonals starting from x = 1
      **/
-    fun checkForWinner(): Player {
-        val grid = moves.associate { request -> request.coordinates to request.player }
+    fun checkForWinner(): PlayerInfo {
+        val grid = moves.associate { request -> request.coordinates to request.playerInfo }
 
         // check all x
         for (i in 0 until bounds) {
-            var lastPlayerFound = Player.None
+            var lastPlayerInfoFound = PlayerInfo.None
             for (j in 0 until bounds) {
                 val square = grid[Coordinates(i, j)]
                 if (square == null) break // square isn't used, can't win on this column
-                else if (lastPlayerFound == Player.None) lastPlayerFound = square // 1st used square found
-                else if (lastPlayerFound != square) break // a player doesn't own consecutive squares
-                else if (lastPlayerFound == square) { // a player owns consecutive squares
-                    if (j == bounds - 1) return lastPlayerFound
+                else if (lastPlayerInfoFound == PlayerInfo.None) lastPlayerInfoFound = square // 1st used square found
+                else if (lastPlayerInfoFound != square) break // a player doesn't own consecutive squares
+                else if (lastPlayerInfoFound == square) { // a player owns consecutive squares
+                    if (j == bounds - 1) return lastPlayerInfoFound
                     else continue
                 }
             }
@@ -91,46 +97,46 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
 
         // check all y
         for (i in 0 until bounds) {
-            var lastPlayerFound = Player.None
+            var lastPlayerInfoFound = PlayerInfo.None
             for (j in 0 until bounds) {
                 val square = grid[Coordinates(j, i)]
                 if (square == null) break // square isn't used, can't win on this row
-                else if (lastPlayerFound == Player.None) lastPlayerFound = square // 1st used square found
-                else if (lastPlayerFound != square) break // a player doesn't own consecutive squares
-                else if (lastPlayerFound == square) { // a player owns consecutive squares
-                    if (j == bounds - 1) return lastPlayerFound
+                else if (lastPlayerInfoFound == PlayerInfo.None) lastPlayerInfoFound = square // 1st used square found
+                else if (lastPlayerInfoFound != square) break // a player doesn't own consecutive squares
+                else if (lastPlayerInfoFound == square) { // a player owns consecutive squares
+                    if (j == bounds - 1) return lastPlayerInfoFound
                     else continue
                 }
             }
         }
 
         // check diagonals 0,0 -> n,n
-        var lastPlayerFound = Player.None
+        var lastPlayerInfoFound = PlayerInfo.None
         for (i in 0 until bounds) {
             val square = grid[Coordinates(i, i)]
             if (square == null) break // square isn't used, can't win on this row
-            else if (lastPlayerFound == Player.None) lastPlayerFound = square // 1st used square found
-            else if (lastPlayerFound != square) break // a player doesn't own consecutive squares
-            else if (lastPlayerFound == square) { // a player owns consecutive squares
-                if (i == bounds - 1) return lastPlayerFound
+            else if (lastPlayerInfoFound == PlayerInfo.None) lastPlayerInfoFound = square // 1st used square found
+            else if (lastPlayerInfoFound != square) break // a player doesn't own consecutive squares
+            else if (lastPlayerInfoFound == square) { // a player owns consecutive squares
+                if (i == bounds - 1) return lastPlayerInfoFound
                 else continue
             }
         }
 
         // check diagonals 0,n -> n,0
-        lastPlayerFound = Player.None
+        lastPlayerInfoFound = PlayerInfo.None
         for (i in 0 until bounds) {
             val square = grid[Coordinates(i, bounds - i - 1)]
             if (square == null) break // square isn't used, can't win on this row
-            else if (lastPlayerFound == Player.None) lastPlayerFound = square // 1st used square found
-            else if (lastPlayerFound != square) break // a player doesn't own consecutive squares
-            else if (lastPlayerFound == square) { // a player owns consecutive squares
-                if (i == bounds - 1) return lastPlayerFound
+            else if (lastPlayerInfoFound == PlayerInfo.None) lastPlayerInfoFound = square // 1st used square found
+            else if (lastPlayerInfoFound != square) break // a player doesn't own consecutive squares
+            else if (lastPlayerInfoFound == square) { // a player owns consecutive squares
+                if (i == bounds - 1) return lastPlayerInfoFound
                 else continue
             }
         }
 
-        return Player.None
+        return PlayerInfo.None
     }
 }
 
@@ -138,8 +144,8 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
  * Represents the entire state of the game
  *
  * @param board The current game board
- * @param currentPlayer The player whose turn it is to play
- * @param winner The player who has won the game, [Player.None] indicates there is no winner
+ * @param currentPlayerInfo The player whose turn it is to play
+ * @param winner The player who has won the game, [PlayerInfo.None] indicates there is no winner
  * @param numAvailableMoves The number of available moves. 0 indicates no further moves may be played
  */
-data class GameState(val board: Board, val currentPlayer: Player, val winner: Player)
+data class GameState(val board: Board, val currentPlayerInfo: PlayerInfo, val winner: PlayerInfo)

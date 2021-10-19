@@ -1,27 +1,78 @@
+@file:Suppress("unused")
+
 package players
 
+import Action
 import Board
 import Coordinates
+import GameState
+import Move
 import MoveRequest
-import Player
+import PlayerInfo
+import Undo
 import com.github.michaelbull.result.*
 import makeMove
+import parse
 import kotlin.collections.fold
 
-sealed class ComputerPlayer {
-    abstract fun getNextMove(board: Board): Result<Coordinates, Throwable>
+sealed class Player {
+    abstract fun getAction(gameState: GameState): Result<Action, Throwable>
 }
 
-object RandomPlayer : ComputerPlayer() {
-    override fun getNextMove(board: Board): Result<Coordinates, Throwable> {
-        return getRandomCoordinates(board)
+class HumanPlayer(
+    private val playerInfo: PlayerInfo,
+    private val readIn: () -> String?,
+    private val printOut: (String) -> Unit
+): Player() {
+
+    override fun getAction(gameState: GameState): Result<Action, Throwable> {
+        return requestInput(playerInfo.name, printOut, readIn)
+            .andThen { input -> parseAction(input) }
+    }
+
+    /**
+     * Print a string and retrieve input from the command line.
+     *
+     * @param name A name by which to address the player
+     * @param printOut A method to print a string out
+     * @param readIn A method that reads a string in
+     * @return A [Result] containing the [String] entered by the [PlayerInfo] or a [Throwable]
+     */
+    private fun requestInput(name: String, printOut: (String) -> Unit, readIn: () -> String?): Result<String, Throwable> {
+        printOut(name)
+        val input = readIn() ?: return Err(Throwable("No input received"))
+        return Ok(input)
+    }
+
+    private fun parseAction(input: String): Result<Action, Throwable> {
+        return when (input[0]) {
+            'm' -> parse(input.substring(1).trim()).map { Move(it) }
+            'u' -> Ok(Undo)
+            else -> Err(Throwable("Invalid input"))
+        }
     }
 }
 
-class OneLayerPlayer(private val player: Player) : ComputerPlayer() {
-    override fun getNextMove(board: Board): Result<Coordinates, Throwable> {
-        return getWinningCoordinates(board, player)
-            .orElse { getRandomCoordinates(board) }
+class RandomBot(
+    private val playerInfo: PlayerInfo,
+    private val printOut: (String, String) -> Unit
+) : Player() {
+    override fun getAction(gameState: GameState): Result<Action, Throwable> {
+        return getRandomCoordinates(gameState.board)
+            .onSuccess { printOut(playerInfo.name, "m ${it.x} ${it.y}") }
+            .map { coordinates -> Move(coordinates) }
+    }
+}
+
+class OneLayerBot(
+    private val playerInfo: PlayerInfo,
+    private val printOut: (String, String) -> Unit
+) : Player() {
+    override fun getAction(gameState: GameState): Result<Action, Throwable> {
+        return getWinningCoordinates(gameState.board, playerInfo)
+            .orElse { getRandomCoordinates(gameState.board) }
+            .onSuccess { printOut(playerInfo.name, "m ${it.x} ${it.y}") }
+            .map { coordinates -> Move(coordinates) }
     }
 }
 
@@ -32,17 +83,24 @@ class OneLayerPlayer(private val player: Player) : ComputerPlayer() {
  *  2) first to have a blocking move returns
  *  3) else no blocking move
  */
-class TwoLayerPlayer(private val player: Player) : ComputerPlayer() {
-    override fun getNextMove(board: Board): Result<Coordinates, Throwable> {
-        return getWinningCoordinates(board, player)
-            .orElse { getBlockingCoordinates(board, Player.nextPlayer(player)) }
-            .orElse { getRandomCoordinates(board) }
+class TwoLayerBot(
+    private val playerInfo: PlayerInfo,
+    private val printOut: (String, String) -> Unit
+) : Player() {
+    override fun getAction(gameState: GameState): Result<Action, Throwable> {
+        return getWinningCoordinates(gameState.board, playerInfo)
+            .orElse { getBlockingCoordinates(gameState.board, PlayerInfo.nextPlayer(playerInfo)) }
+            .orElse { getRandomCoordinates(gameState.board) }
+            .onSuccess { printOut(playerInfo.name, "m ${it.x} ${it.y}") }
+            .map { coordinates -> Move(coordinates) }
     }
-
 }
 
-class PerfectPlayer(private val player: Player) : ComputerPlayer() {
-    override fun getNextMove(board: Board): Result<Coordinates, Throwable> {
+class PerfectBot(
+    private val playerInfo: PlayerInfo,
+    private val printOut: (String, String) -> Unit
+) : Player() {
+    override fun getAction(gameState: GameState): Result<Action, Throwable> {
         TODO("Not yet implemented")
     }
 }
@@ -53,30 +111,30 @@ fun getRandomCoordinates(board: Board): Result<Coordinates, Throwable> {
 }
 
 /**
- * Returns the [Coordinates] to block [Player] if they exist
+ * Returns the [Coordinates] to block [PlayerInfo] if they exist
  */
-fun getBlockingCoordinates(board: Board, player: Player): Result<Coordinates, Throwable> {
-    return getWinningCoordinates(board, player)
+fun getBlockingCoordinates(board: Board, playerInfo: PlayerInfo): Result<Coordinates, Throwable> {
+    return getWinningCoordinates(board, playerInfo)
 }
 
 /**
- * Return the winning [Coordinates] for [Player] if they exist.
+ * Return the winning [Coordinates] for [PlayerInfo] if they exist.
  */
-fun getWinningCoordinates(board: Board, player: Player): Result<Coordinates, Throwable> {
+fun getWinningCoordinates(board: Board, playerInfo: PlayerInfo): Result<Coordinates, Throwable> {
     return runCatching {
         board.getRemainingCoordinates()
             .first { coordinates ->
-                val moveRequest = MoveRequest(coordinates, player, board.moves.count())
+                val moveRequest = MoveRequest(coordinates, playerInfo, board.getNextMoveNumber())
                 val newBoard = makeMove(moveRequest, board)
                 val winner = newBoard.checkForWinner()
-                winner == player
+                winner == playerInfo
             }
         }.mapError { Throwable("No winning move") }
 }
 
 // TODO rewrite check for winner with this setup. Looks much easier to understand.
-fun getWinningCoordinates2(board: Board, player: Player): Result<Coordinates, Throwable> {
-    val myMoves = board.moves.filter { request -> request.player == player }
+fun getWinningCoordinates2(board: Board, playerInfo: PlayerInfo): Result<Coordinates, Throwable> {
+    val myMoves = board.moves.filter { request -> request.playerInfo == playerInfo }
     val moves = myMoves.associateBy { request -> request.coordinates }
     val magicNumber = List(board.bounds) { it + 1 }.fold(0) { acc, i -> acc + i }
 
