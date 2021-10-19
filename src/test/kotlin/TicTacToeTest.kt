@@ -63,7 +63,7 @@ internal class CheckForWinner {
     @Test
     fun `no winner for empty board`() {
         val board = getEmptyBoard(3)
-        val result = checkForWinner(board)
+        val result = board.checkForWinner()
         assertEquals(Player.None, result)
     }
 
@@ -76,7 +76,7 @@ internal class CheckForWinner {
             ),
             bounds = 3
         )
-        val result = checkForWinner(board)
+        val result = board.checkForWinner()
         assertEquals(Player.None, result)
     }
 
@@ -90,7 +90,7 @@ internal class CheckForWinner {
             ),
             bounds = 3
         )
-        val result = checkForWinner(board)
+        val result = board.checkForWinner()
         assertEquals(Player.None, result)
     }
 
@@ -104,7 +104,7 @@ internal class CheckForWinner {
             ),
             bounds = 3
         )
-        val result = checkForWinner(board)
+        val result = board.checkForWinner()
         assertEquals(Player.One, result)
     }
 
@@ -118,7 +118,7 @@ internal class CheckForWinner {
             ),
             bounds = 3
         )
-        val result = checkForWinner(board)
+        val result = board.checkForWinner()
         assertEquals(Player.Two, result)
     }
 
@@ -132,7 +132,7 @@ internal class CheckForWinner {
             ),
             bounds = 3
         )
-        val result = checkForWinner(board)
+        val result = board.checkForWinner()
         assertEquals(Player.One, result)
     }
 
@@ -146,7 +146,7 @@ internal class CheckForWinner {
             ),
             bounds = 3
         )
-        val result = checkForWinner(board)
+        val result = board.checkForWinner()
         assertEquals(Player.Two, result)
     }
 }
@@ -196,14 +196,14 @@ internal class AppendWithSpace {
 internal class Undo {
     @Test
     fun `undoing empty game returns error`() {
-        val result = undoMove(getEmptyBoard(3))
+        val result = getEmptyBoard(3).undoMove()
         assertNotNull(result.component2(), "Nothing to undo")
     }
 
     @Test
     fun `undoing valid board returns new board`() {
         val board = Board(listOf(MoveRequest(Coordinates(0, 0), Player.One, 0)), 3)
-        val result = undoMove(board)
+        val result = board.undoMove()
         assertNotNull(result.component1(), "Should be a valid undo")
         val newBoard = result.component1()!!
         assertEquals(newBoard.moves.count(), board.moves.count() - 1, "New board should have 1 fewer moves")

@@ -1,13 +1,34 @@
 import com.github.michaelbull.result.*
 import kotlin.math.log10
 
+fun getopt(args: Array<String>): Map<String, List<String>> =
+    args.fold(mutableListOf()) { acc: MutableList<MutableList<String>>, s: String ->
+        acc.apply {
+            if (s.startsWith('-')) add(mutableListOf(s))
+            else last().add(s)
+        }
+    }.associate { it[0] to it.drop(1) }
+
+data class GameOptions(
+    val boardSize: Int,
+    val players: Int,
+//    val uesBots: Boolean,
+//    val botLevel: Int,
+//    val botPlayerPosition: Int
+)
+
 fun main(args: Array<String>) {
-    println("Hello World!")
+    println("Welcome to Tic-Tac-Toe!")
 
     // Try adding program arguments at Run/Debug configuration
     println("Program arguments: ${args.joinToString()}")
 
-    tictactoe(3)
+    val opts = getopt(args)
+    val gameOptions = GameOptions(
+        boardSize = opts["--board-size"]?.firstOrNull()?.toInt() ?: 3,
+        players = opts["--players"]?.firstOrNull()?.toInt() ?: 2
+    )
+    tictactoe(gameOptions)
 }
 
 val actions = """
@@ -17,9 +38,9 @@ val actions = """
     |
 """.trimMargin()
 
-/** Start a game of tic-tac-toe with a board of size [boardSize] **/
-fun tictactoe(boardSize: Int) {
-    var gameState = GameState(Board(emptyList(), boardSize), Player.One, Player.None, boardSize * boardSize)
+/** Start a game of tic-tac-toe **/
+fun tictactoe(gameOptions: GameOptions) {
+    var gameState = GameState(Board(emptyList(), gameOptions.boardSize), Player.One, Player.None)
     println("Welcome to TicTacToe")
     println(actions)
 
@@ -30,7 +51,7 @@ fun tictactoe(boardSize: Int) {
             break
         }
 
-        if (gameState.numAvailableMoves == 0) {
+        if (gameState.board.moves.count() == gameState.board.totalMovesAllowed()) {
             println("No more moves available. Game is a tie")
             break
         }
@@ -48,8 +69,6 @@ fun tictactoe(boardSize: Int) {
  * Transform the board into a string for display
  *  0,0 is the bottom left corner
  *  n,n is the top right corner
- *
- *  todo handle boards where n > 9
  */
 fun drawBoard(board: Board): String {
     val lastIndex = board.bounds - 1

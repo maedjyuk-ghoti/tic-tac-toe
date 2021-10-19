@@ -25,26 +25,15 @@ class Move(private val input: String) : Action() {
         return parse(input)
             .andThen { coordinates -> validate(MoveRequest(coordinates, gameState.currentPlayer, gameState.board.moves.count()), gameState.board) }
             .map { request -> makeMove(request, gameState.board) }
-            .map { updatedBoard -> checkForWinner(updatedBoard) to updatedBoard }
-            .map { (winner, updatedBoard) ->
-                val updateAvailableMoves = gameState.numAvailableMoves - 1
-                GameState(updatedBoard, Player.nextPlayer(gameState.currentPlayer), winner, updateAvailableMoves)
-            }
+            .map { updatedBoard -> updatedBoard.checkForWinner() to updatedBoard }
+            .map { (winner, updatedBoard) -> GameState(updatedBoard, Player.nextPlayer(gameState.currentPlayer), winner) }
     }
 }
 
 object Undo : Action() {
     override fun act(gameState: GameState): Result<GameState, Throwable> {
-        return undoMove(gameState.board)
-            .map { updatedBoard ->
-                val updatedAvailableMoves = gameState.numAvailableMoves + 1
-                GameState(
-                    updatedBoard,
-                    Player.previousPlayer(gameState.currentPlayer),
-                    gameState.winner,
-                    updatedAvailableMoves
-                )
-            }
+        return gameState.board.undoMove()
+            .map { updatedBoard -> GameState(updatedBoard, Player.previousPlayer(gameState.currentPlayer), gameState.winner) }
     }
 }
 
@@ -81,72 +70,4 @@ fun validate(request: MoveRequest, board: Board): Result<MoveRequest, Throwable>
 fun makeMove(request: MoveRequest, board: Board): Board {
     val updatedMoves = board.moves.plus(request)
     return Board(updatedMoves, board.bounds)
-}
-
-/** Check the [Board] for a winning player. Return [Player.None] if no winner is found. **/
-fun checkForWinner(board: Board): Player {
-    val grid = board.moves.associate { request -> request.coordinates to request.player }
-
-    // check all x
-    for (i in 0 until board.bounds) {
-        var lastPlayerFound = Player.None
-        for (j in 0 until board.bounds) {
-            val square = grid[Coordinates(i, j)]
-            if (square == null) break // square isn't used, can't win on this column
-            else if (lastPlayerFound == Player.None) lastPlayerFound = square // 1st used square found
-            else if (lastPlayerFound != square) break // a player doesn't own consecutive squares
-            else if (lastPlayerFound == square) { // a player owns consecutive squares
-                if (j == board.bounds - 1) return lastPlayerFound
-                else continue
-            }
-        }
-    }
-
-    // check all y
-    for (i in 0 until board.bounds) {
-        var lastPlayerFound = Player.None
-        for (j in 0 until board.bounds) {
-            val square = grid[Coordinates(j, i)]
-            if (square == null) break // square isn't used, can't win on this row
-            else if (lastPlayerFound == Player.None) lastPlayerFound = square // 1st used square found
-            else if (lastPlayerFound != square) break // a player doesn't own consecutive squares
-            else if (lastPlayerFound == square) { // a player owns consecutive squares
-                if (j == board.bounds - 1) return lastPlayerFound
-                else continue
-            }
-        }
-    }
-
-    // check diagonals 0,0 -> n,n
-    var lastPlayerFound = Player.None
-    for (i in 0 until board.bounds) {
-        val square = grid[Coordinates(i, i)]
-        if (square == null) break // square isn't used, can't win on this row
-        else if (lastPlayerFound == Player.None) lastPlayerFound = square // 1st used square found
-        else if (lastPlayerFound != square) break // a player doesn't own consecutive squares
-        else if (lastPlayerFound == square) { // a player owns consecutive squares
-            if (i == board.bounds - 1) return lastPlayerFound
-            else continue
-        }
-    }
-
-    // check diagonals 0,n -> n,0
-    lastPlayerFound = Player.None
-    for (i in 0 until board.bounds) {
-        val square = grid[Coordinates(i, board.bounds - i - 1)]
-        if (square == null) break // square isn't used, can't win on this row
-        else if (lastPlayerFound == Player.None) lastPlayerFound = square // 1st used square found
-        else if (lastPlayerFound != square) break // a player doesn't own consecutive squares
-        else if (lastPlayerFound == square) { // a player owns consecutive squares
-            if (i == board.bounds - 1) return lastPlayerFound
-            else continue
-        }
-    }
-
-    return Player.None
-}
-
-fun undoMove(board: Board): Result<Board, Throwable> {
-    if (board.moves.isEmpty()) return Err(Throwable("No moves to undo"))
-    return Ok(Board(board.moves.subList(0, board.moves.lastIndex), board.bounds))
 }
