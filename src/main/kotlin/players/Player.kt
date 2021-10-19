@@ -1,5 +1,3 @@
-@file:Suppress("unused")
-
 package players
 
 import Action
@@ -53,26 +51,32 @@ class HumanPlayer(
     }
 }
 
-class RandomBot(
+class BotPlayer(
     private val playerInfo: PlayerInfo,
-    private val printOut: (String, String) -> Unit
+    private val printOut: (String, String) -> Unit,
+    private val botStrategy: BotStrategy
 ) : Player() {
     override fun getAction(gameState: GameState): Result<Action, Throwable> {
-        return getRandomCoordinates(gameState.board)
+        return botStrategy.getCoordinates(gameState)
             .onSuccess { printOut(playerInfo.name, "m ${it.x} ${it.y}") }
             .map { coordinates -> Move(coordinates) }
     }
 }
 
-class OneLayerBot(
-    private val playerInfo: PlayerInfo,
-    private val printOut: (String, String) -> Unit
-) : Player() {
-    override fun getAction(gameState: GameState): Result<Action, Throwable> {
-        return getWinningCoordinates(gameState.board, playerInfo)
+sealed interface BotStrategy {
+    fun getCoordinates(gameState: GameState): Result<Coordinates, Throwable>
+}
+
+object RandomBot : BotStrategy {
+    override fun getCoordinates(gameState: GameState): Result<Coordinates, Throwable> {
+        return getRandomCoordinates(gameState.board)
+    }
+}
+
+object OneLayerBot : BotStrategy {
+    override fun getCoordinates(gameState: GameState): Result<Coordinates, Throwable> {
+        return getWinningCoordinates(gameState.board, gameState.currentPlayerInfo)
             .orElse { getRandomCoordinates(gameState.board) }
-            .onSuccess { printOut(playerInfo.name, "m ${it.x} ${it.y}") }
-            .map { coordinates -> Move(coordinates) }
     }
 }
 
@@ -83,24 +87,16 @@ class OneLayerBot(
  *  2) first to have a blocking move returns
  *  3) else no blocking move
  */
-class TwoLayerBot(
-    private val playerInfo: PlayerInfo,
-    private val printOut: (String, String) -> Unit
-) : Player() {
-    override fun getAction(gameState: GameState): Result<Action, Throwable> {
-        return getWinningCoordinates(gameState.board, playerInfo)
-            .orElse { getBlockingCoordinates(gameState.board, PlayerInfo.nextPlayer(playerInfo)) }
+object TwoLayerBot : BotStrategy {
+    override fun getCoordinates(gameState: GameState): Result<Coordinates, Throwable> {
+        return getWinningCoordinates(gameState.board, gameState.currentPlayerInfo)
+            .orElse { getBlockingCoordinates(gameState.board, PlayerInfo.nextPlayer(gameState.currentPlayerInfo)) }
             .orElse { getRandomCoordinates(gameState.board) }
-            .onSuccess { printOut(playerInfo.name, "m ${it.x} ${it.y}") }
-            .map { coordinates -> Move(coordinates) }
     }
 }
 
-class PerfectBot(
-    private val playerInfo: PlayerInfo,
-    private val printOut: (String, String) -> Unit
-) : Player() {
-    override fun getAction(gameState: GameState): Result<Action, Throwable> {
+object PerfectBot : BotStrategy {
+    override fun getCoordinates(gameState: GameState): Result<Coordinates, Throwable> {
         TODO("Not yet implemented")
     }
 }

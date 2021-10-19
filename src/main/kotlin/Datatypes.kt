@@ -2,11 +2,7 @@ import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 
-data class GameOptions(
-    val boardSize: Int,
-    val players: Int,
-    val botLevel: Int
-)
+data class GameOptions(val boardSize: Int, val players: Int, val botLevel: Int)
 
 /**
  * A pair of X, Y coordinates.
@@ -18,13 +14,12 @@ data class Coordinates(val x: Int, val y: Int)
 /**
  * Players available for a game.
  *
- * @param number The player's number
  * @param symbol A symbol to represent the player on the grid
  */
-enum class PlayerInfo(val number: Int, val symbol: Char) {
-    None(0, ' '),
-    One(1, 'X'),
-    Two(2, 'O');
+enum class PlayerInfo(val symbol: Char) {
+    None(' '),
+    One('X'),
+    Two('O');
 
     companion object {
         fun previousPlayer(playerInfo: PlayerInfo): PlayerInfo {
@@ -146,6 +141,5 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
  * @param board The current game board
  * @param currentPlayerInfo The player whose turn it is to play
  * @param winner The player who has won the game, [PlayerInfo.None] indicates there is no winner
- * @param numAvailableMoves The number of available moves. 0 indicates no further moves may be played
  */
 data class GameState(val board: Board, val currentPlayerInfo: PlayerInfo, val winner: PlayerInfo)
