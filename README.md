@@ -1,6 +1,22 @@
 # Tic-Tac-Toe
 A simple Tic-Tac-Toe game usable from the command line
 
+## Command Line Args
+### Board Size
+`--board-size 3`
+
+The board may be any size less than 100. The game behaves correctly when board size is an odd number.
+
+### Number of Players
+`--players 1`
+
+Currently, only 1 or 2 players are supported. When number of players is 1, a level 0 bot will play.
+
+### Bot Level
+`--bot-level 0`
+
+If a bot is used, it will use the bot level set here. Current bot levels are 0, 1, and 2.
+
 ## Motivation
 An interviewer had me make a tic-tac-toe game in 40 minutes. I struggled through it and made many bad decisions under the pressure. Here is a version that, while it isn't perfect, is much more in line with how I program and think about problems. The initial commit took 2.5 hours with the drawing taking the largest chunk of time. More time has since been spent improving that work.
 

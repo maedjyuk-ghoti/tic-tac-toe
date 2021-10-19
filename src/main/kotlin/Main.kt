@@ -17,7 +17,7 @@ fun main(args: Array<String>) {
     val gameOptions = GameOptions(
         boardSize = opts["--board-size"]?.firstOrNull()?.toInt() ?: 3,
         players = opts["--players"]?.firstOrNull()?.toInt() ?: 2,
-        botLevel = opts["--bot-level"]?.firstOrNull()?.toInt() ?: 2,
+        botLevel = opts["--bot-level"]?.firstOrNull()?.toInt() ?: 0,
     )
     tictactoe(gameOptions)
 }
