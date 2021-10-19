@@ -9,7 +9,25 @@ data class GameOptions(val boardSize: Int, val players: Int, val botLevel: Int)
  *
  * Convenience class to keep in line with a Data/Domain Oriented approach.
  */
-data class Coordinates(val x: Int, val y: Int)
+data class Coordinates(val x: Int, val y: Int) {
+    companion object {
+        /**
+         * Parse a string for coordinates
+         *
+         * @param input A string that may contain usable info for tictactoe
+         * @return A [Result] containing the [Coordinates] entered by the [PlayerInfo] or a [Throwable]
+         */
+        fun parse(input: String): Result<Coordinates, Throwable> {
+            val split = input.split(" ")
+            if (split.size != 2) return Err(Throwable("Input needs to be in the form of `x y` coordinates"))
+
+            val x = split[0].toIntOrNull() ?: return Err(Throwable("x coordinate was not a valid number"))
+            val y = split[1].toIntOrNull() ?: return Err(Throwable("y coordinate was not a valid number"))
+
+            return Ok(Coordinates(x, y))
+        }
+    }
+}
 
 /**
  * Players available for a game.
