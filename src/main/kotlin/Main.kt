@@ -1,14 +1,6 @@
 import com.github.michaelbull.result.*
+import players.*
 import kotlin.math.log10
-
-fun main(args: Array<String>) {
-    println("Hello World!")
-
-    // Try adding program arguments at Run/Debug configuration
-    println("Program arguments: ${args.joinToString()}")
-
-    tictactoe(3)
-}
 
 val actions = """
     |Actions:
@@ -17,25 +9,51 @@ val actions = """
     |
 """.trimMargin()
 
-/** Start a game of tic-tac-toe with a board of size [boardSize] **/
-fun tictactoe(boardSize: Int) {
-    var gameState = GameState(Board(emptyList(), boardSize), Player.One, Player.None, boardSize * boardSize)
+fun main(args: Array<String>) {
+    println("Welcome to Tic-Tac-Toe!")
+    println("Program arguments: ${args.joinToString()}")
+
+    val opts = getopt(args)
+    val gameOptions = GameOptions(
+        boardSize = opts["--board-size"]?.firstOrNull()?.toInt() ?: 3,
+        players = opts["--players"]?.firstOrNull()?.toInt() ?: 2,
+        botLevel = opts["--bot-level"]?.firstOrNull()?.toInt() ?: 2,
+    )
+    tictactoe(gameOptions)
+}
+
+fun getopt(args: Array<String>): Map<String, List<String>> {
+    return args.fold(mutableListOf()) { acc: MutableList<MutableList<String>>, s: String ->
+        acc.apply {
+            if (s.startsWith('-')) add(mutableListOf(s))
+            else last().add(s)
+        }
+    }.associate { it[0] to it.drop(1) }
+}
+
+/** Start a game of tic-tac-toe **/
+fun tictactoe(gameOptions: GameOptions) {
     println("Welcome to TicTacToe")
     println(actions)
 
+    val players = getPlayers(gameOptions.players, gameOptions.botLevel)
+    var gameState = GameState(Board(emptyList(), gameOptions.boardSize), PlayerInfo.One, PlayerInfo.None)
+
     while (true) {
         println(drawBoard(gameState.board))
-        if (gameState.winner != Player.None) {
+        if (gameState.winner != PlayerInfo.None) {
             println("Player ${gameState.winner} wins!")
             break
         }
 
-        if (gameState.numAvailableMoves == 0) {
+        if (gameState.board.moves.count() == gameState.board.totalMovesAllowed()) {
             println("No more moves available. Game is a tie")
             break
         }
 
-        turn(gameState, ::print, ::readLine)
+        players.getValue(gameState.currentPlayerInfo)
+            .getAction(gameState)
+            .andThen { action -> action.act(gameState) }
             .onSuccess { newGameState -> gameState = newGameState }
             .onFailure { throwable ->
                 println(throwable.message)
@@ -44,24 +62,54 @@ fun tictactoe(boardSize: Int) {
     }
 }
 
+fun getPlayers(numPlayers: Int, botLevel: Int): Map<PlayerInfo, Player> {
+    return if (numPlayers == 1) {
+        mapOf(
+            PlayerInfo.One to HumanPlayer(PlayerInfo.One, ::readLine, ::humanPrompt),
+            PlayerInfo.Two to getBotAtLevel(botLevel, PlayerInfo.Two)
+        )
+    } else {
+        mapOf(
+            PlayerInfo.One to HumanPlayer(PlayerInfo.One, ::readLine, ::humanPrompt),
+            PlayerInfo.Two to HumanPlayer(PlayerInfo.Two, ::readLine, ::humanPrompt)
+        )
+    }
+}
+
+fun getBotAtLevel(botLevel: Int, playerInfo: PlayerInfo): Player {
+    return when (botLevel) {
+        1 -> OneLayerBot(playerInfo, ::botPrompt)
+        2 -> TwoLayerBot(playerInfo, ::botPrompt)
+        else -> RandomBot(playerInfo, ::botPrompt)
+    }
+}
+
+fun humanPrompt(name: String) {
+    val ask = "Player %s's turn: ".format(name)
+    print(ask)
+}
+
+fun botPrompt(name: String, move: String) {
+    val ask = "Player %s's turn (Bot): %s".format(name, move)
+    print(ask)
+}
+
 /**
  * Transform the board into a string for display
  *  0,0 is the bottom left corner
  *  n,n is the top right corner
- *
- *  todo handle boards where n > 9
  */
 fun drawBoard(board: Board): String {
     val lastIndex = board.bounds - 1
-    val buffer = StringBuilder()
-    val grid = board.moves.associate { request -> request.coordinates to request.player }
+    val buffer = StringBuilder("\n")
+    val grid = board.moves.associate { request -> request.coordinates to request.playerInfo }
 
     for (i in lastIndex downTo 0) {
         // draw row number
         buffer.append(appendWithSpaceAfter(2, i))
 
         for (j in 0..lastIndex) {
-            val square = grid[Coordinates(j, i)] ?: Player.None
+            val square = grid[Coordinates(j, i)] ?: PlayerInfo.None
             // draw square and column separator
             when (j) {
                 lastIndex -> buffer.append(" ${square.symbol}")
@@ -115,31 +163,4 @@ fun appendWithSpaceAfter(spaceCount: Int, number: Int): String {
     for (i in 0 until (spaceCount - magnitude)) buffer.append(' ')
 
     return buffer.toString()
-}
-
-/**
- * Take a turn in the current game state.
- *
- * @return A [Result] with a new [Board] or a [Throwable]
- */
-fun turn(gameState: GameState, printOut: (String) -> Unit, readIn: () -> String?): Result<GameState, Throwable> {
-    val ask = "Player %s's turn: ".format(gameState.currentPlayer.number)
-
-    return requestInput(ask, printOut, readIn)
-        .map { input -> Action.getAction(input) }
-        .andThen { action -> action.act(gameState) }
-}
-
-/**
- * Display [ask] and retrieve input from the command line.
- *
- * @param ask A string to display on command line before waiting for input
- * @param printOut A method to print a string out
- * @param readIn A method that reads a string in
- * @return A [Result] containing the [String] entered by the [Player] or a [Throwable]
- */
-fun requestInput(ask: String, printOut: (String) -> Unit, readIn: () -> String?): Result<String, Throwable> {
-    printOut(ask)
-    val input = readIn() ?: return Err(Throwable("No input received"))
-    return Ok(input)
 }
