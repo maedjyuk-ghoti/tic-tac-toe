@@ -17,7 +17,7 @@ sealed class Player {
 
         override fun getAction(gameState: GameState): Result<Action, Throwable> {
             return requestInput(playerInfo.name, printOut, readIn)
-                .andThen { input -> parseAction(input) }
+                .andThen { input -> Action.parse(input) }
         }
 
         /**
@@ -32,14 +32,6 @@ sealed class Player {
             printOut(name)
             val input = readIn() ?: return Err(Throwable("No input received"))
             return Ok(input)
-        }
-
-        private fun parseAction(input: String): Result<Action, Throwable> {
-            return when (input[0]) {
-                'm' -> Coordinates.parse(input.substring(1).trim()).map { Action.Move(it) }
-                'u' -> Ok(Action.Undo)
-                else -> Err(Throwable("Invalid input"))
-            }
         }
     }
 

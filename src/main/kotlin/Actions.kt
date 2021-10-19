@@ -3,6 +3,16 @@ import com.github.michaelbull.result.*
 sealed class Action {
     abstract fun act(gameState: GameState): Result<GameState, Throwable>
 
+    companion object {
+        fun parse(input: String): Result<Action, Throwable> {
+            return when (input[0]) {
+                'm' -> Coordinates.parse(input.substring(1).trim()).map { Move(it) }
+                'u' -> Ok(Undo)
+                else -> Err(Throwable("Invalid input"))
+            }
+        }
+    }
+
     class Move(private val coordinates: Coordinates) : Action() {
         override fun act(gameState: GameState): Result<GameState, Throwable> {
             return validate(MoveRequest(coordinates, gameState.currentPlayerInfo, gameState.board.getNextMoveNumber()), gameState.board)
@@ -27,10 +37,18 @@ sealed class Action {
  * @return A [Result] containing a validated [MoveRequest] or a [Throwable]
  */
 fun validate(request: MoveRequest, board: Board): Result<MoveRequest, Throwable> {
-    if (request.coordinates.x >= board.bounds || request.coordinates.x < 0) return Err(Throwable("x coordinate is outside the bounds"))
-    if (request.coordinates.y >= board.bounds || request.coordinates.y < 0) return Err(Throwable("y coordinate is outside the bounds"))
-    if (board.moves.associateBy(MoveRequest::coordinates).contains(request.coordinates)) return Err(Throwable("That square has already been played"))
+    if (!isValidCoordinate(request.coordinates.x, board.bounds)) return Err(Throwable("x coordinate is outside the bounds"))
+    if (!isValidCoordinate(request.coordinates.y, board.bounds)) return Err(Throwable("y coordinate is outside the bounds"))
+    if (areCoordinatesTaken(request.coordinates, board.moves)) return Err(Throwable("That square has already been played"))
     return Ok(request)
+}
+
+fun isValidCoordinate(coordinate: Int, bounds: Int): Boolean {
+    return (coordinate < bounds) && (coordinate >= 0)
+}
+
+fun areCoordinatesTaken(coordinates: Coordinates, moves: List<MoveRequest>): Boolean {
+    return moves.associateBy(MoveRequest::coordinates).contains(coordinates)
 }
 
 /** Play the [MoveRequest] and return the new [Board] **/

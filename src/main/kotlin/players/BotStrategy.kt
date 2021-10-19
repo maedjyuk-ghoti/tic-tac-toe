@@ -6,11 +6,23 @@ import GameState
 import MoveRequest
 import PlayerInfo
 import com.github.michaelbull.result.*
+import com.sun.source.tree.BinaryTree
 import makeMove
+import java.util.*
 import kotlin.collections.fold
 
 sealed interface BotStrategy {
     fun getCoordinates(gameState: GameState): Result<Coordinates, Throwable>
+
+    companion object {
+        fun getBotAtLevel(botLevel: Int): BotStrategy {
+            return when (botLevel) {
+                1 -> OneLayer
+                2 -> TwoLayer
+                else -> Random
+            }
+        }
+    }
 
     object Random : BotStrategy {
         override fun getCoordinates(gameState: GameState): Result<Coordinates, Throwable> {
@@ -41,6 +53,12 @@ sealed interface BotStrategy {
     }
 
     object Perfect : BotStrategy {
+        override fun getCoordinates(gameState: GameState): Result<Coordinates, Throwable> {
+            TODO("Not yet implemented")
+        }
+    }
+
+    object MiniMax : BotStrategy {
         override fun getCoordinates(gameState: GameState): Result<Coordinates, Throwable> {
             TODO("Not yet implemented")
         }

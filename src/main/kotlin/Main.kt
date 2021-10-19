@@ -66,21 +66,13 @@ fun getPlayers(numPlayers: Int, botLevel: Int): Map<PlayerInfo, Player> {
     return if (numPlayers == 1) {
         mapOf(
             PlayerInfo.One to Player.Human(PlayerInfo.One, ::readLine, ::humanPrompt),
-            PlayerInfo.Two to Player.Bot(PlayerInfo.Two, ::botPrompt, getBotAtLevel(botLevel))
+            PlayerInfo.Two to Player.Bot(PlayerInfo.Two, ::botPrompt, BotStrategy.getBotAtLevel(botLevel))
         )
     } else {
         mapOf(
             PlayerInfo.One to Player.Human(PlayerInfo.One, ::readLine, ::humanPrompt),
             PlayerInfo.Two to Player.Human(PlayerInfo.Two, ::readLine, ::humanPrompt)
         )
-    }
-}
-
-fun getBotAtLevel(botLevel: Int): BotStrategy {
-    return when (botLevel) {
-        1 -> BotStrategy.OneLayer
-        2 -> BotStrategy.TwoLayer
-        else -> BotStrategy.Random
     }
 }
 
