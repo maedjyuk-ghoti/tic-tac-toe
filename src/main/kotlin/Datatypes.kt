@@ -40,6 +40,13 @@ enum class PlayerInfo(val symbol: Char) {
     Two('O');
 
     companion object {
+        fun backUp(playerInfo: PlayerInfo, times: Int): PlayerInfo {
+            val index = values().indexOf(playerInfo)
+            val previousIndex = index - (times % values().count() - 1)
+            val adjustedIndex = if (previousIndex < 1) values().lastIndex + previousIndex else previousIndex
+            return values()[adjustedIndex]
+        }
+
         fun previousPlayer(playerInfo: PlayerInfo): PlayerInfo {
             val index = values().indexOf(playerInfo)
             val previousIndex = if (index - 1 < 1) values().lastIndex else index - 1
@@ -76,9 +83,10 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
         return bounds * bounds
     }
 
-    fun undoMove(): Result<Board, Throwable> {
+    fun undoMove(times: Int = 1): Result<Board, Throwable> {
         if (moves.isEmpty()) return Err(Throwable("No moves to undo"))
-        return Ok(Board(moves.subList(0, moves.lastIndex), bounds))
+        if (times > moves.count()) return Err(Throwable("Requested more moves than are present"))
+        return Ok(Board(moves.subList(0, moves.count() - times), bounds))
     }
 
     /**

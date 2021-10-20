@@ -6,8 +6,8 @@ sealed interface Action {
     companion object {
         fun parse(input: String): Result<Action, Throwable> {
             return when (input[0]) {
-                'm' -> Coordinates.parse(input.substring(1).trim()).map { Move(it) }
-                'u' -> Ok(Undo)
+                'm' -> Coordinates.parse(input.substring(1).trim()).map(::Move)
+                'u' -> runCatching { input.substring(1).trim().toInt() }.recover { 1 }.map(::Undo)
                 else -> Err(Throwable("Invalid input"))
             }
         }
@@ -22,10 +22,10 @@ sealed interface Action {
         }
     }
 
-    object Undo : Action {
+    class Undo(val times: Int) : Action {
         override fun act(gameState: GameState): Result<GameState, Throwable> {
-            return gameState.board.undoMove()
-                .map { updatedBoard -> GameState(updatedBoard, PlayerInfo.previousPlayer(gameState.currentPlayerInfo), gameState.winner) }
+            return gameState.board.undoMove(times)
+                .map { updatedBoard -> GameState(updatedBoard, PlayerInfo.backUp(gameState.currentPlayerInfo, times), gameState.winner) }
         }
     }
 }
