@@ -42,7 +42,7 @@ enum class PlayerInfo(val symbol: Char) {
     companion object {
         fun backUp(playerInfo: PlayerInfo, times: Int): PlayerInfo {
             val index = values().indexOf(playerInfo)
-            val previousIndex = index - (times % values().count() - 1)
+            val previousIndex = index - (times % values().lastIndex)
             val adjustedIndex = if (previousIndex < 1) values().lastIndex + previousIndex else previousIndex
             return values()[adjustedIndex]
         }
