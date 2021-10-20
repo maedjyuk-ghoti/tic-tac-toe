@@ -42,7 +42,7 @@ enum class PlayerInfo(val symbol: Char) {
     companion object {
         fun previousPlayer(playerInfo: PlayerInfo): PlayerInfo {
             val index = values().indexOf(playerInfo)
-            val previousIndex = if (index - 1 > values().lastIndex) 1 else index - 1
+            val previousIndex = if (index - 1 < 1) values().lastIndex else index - 1
             return values()[previousIndex]
         }
 

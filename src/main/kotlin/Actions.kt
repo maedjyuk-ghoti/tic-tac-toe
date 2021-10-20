@@ -48,7 +48,7 @@ fun isValidCoordinate(coordinate: Int, bounds: Int): Boolean {
 }
 
 fun areCoordinatesTaken(coordinates: Coordinates, moves: List<MoveRequest>): Boolean {
-    return moves.firstOrNull { moveRequest -> moveRequest.coordinates == coordinates } == null
+    return moves.firstOrNull { moveRequest -> moveRequest.coordinates == coordinates } != null
 }
 
 /** Play the [MoveRequest] and return the new [Board] **/
