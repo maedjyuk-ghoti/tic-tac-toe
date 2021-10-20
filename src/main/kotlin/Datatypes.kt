@@ -63,7 +63,7 @@ enum class PlayerInfo(val symbol: Char) {
  * @param coordinates the coordinates of the move
  * @param playerInfo the player who made the move
  */
-data class MoveRequest(val coordinates: Coordinates, val playerInfo: PlayerInfo, val number: Int)
+data class MoveRequest(val coordinates: Coordinates, val playerInfo: PlayerInfo)
 
 data class Board(val moves: List<MoveRequest>, val bounds: Int) {
     fun getRemainingCoordinates(): List<Coordinates> {
@@ -74,10 +74,6 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
 
     fun totalMovesAllowed(): Int {
         return bounds * bounds
-    }
-
-    fun getNextMoveNumber(): Int {
-        return moves.count()
     }
 
     fun undoMove(): Result<Board, Throwable> {

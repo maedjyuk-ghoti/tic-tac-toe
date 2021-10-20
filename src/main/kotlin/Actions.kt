@@ -1,7 +1,7 @@
 import com.github.michaelbull.result.*
 
-sealed class Action {
-    abstract fun act(gameState: GameState): Result<GameState, Throwable>
+sealed interface Action {
+    fun act(gameState: GameState): Result<GameState, Throwable>
 
     companion object {
         fun parse(input: String): Result<Action, Throwable> {
@@ -13,16 +13,16 @@ sealed class Action {
         }
     }
 
-    class Move(private val coordinates: Coordinates) : Action() {
+    class Move(private val coordinates: Coordinates) : Action {
         override fun act(gameState: GameState): Result<GameState, Throwable> {
-            return validate(MoveRequest(coordinates, gameState.currentPlayerInfo, gameState.board.getNextMoveNumber()), gameState.board)
+            return validate(MoveRequest(coordinates, gameState.currentPlayerInfo), gameState.board)
                 .map { request -> makeMove(request, gameState.board) }
                 .map { updatedBoard -> updatedBoard.checkForWinner() to updatedBoard }
                 .map { (winner, updatedBoard) -> GameState(updatedBoard, PlayerInfo.nextPlayer(gameState.currentPlayerInfo), winner) }
         }
     }
 
-    object Undo : Action() {
+    object Undo : Action {
         override fun act(gameState: GameState): Result<GameState, Throwable> {
             return gameState.board.undoMove()
                 .map { updatedBoard -> GameState(updatedBoard, PlayerInfo.previousPlayer(gameState.currentPlayerInfo), gameState.winner) }

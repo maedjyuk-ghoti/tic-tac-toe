@@ -6,9 +6,7 @@ import GameState
 import MoveRequest
 import PlayerInfo
 import com.github.michaelbull.result.*
-import com.sun.source.tree.BinaryTree
 import makeMove
-import java.util.*
 import kotlin.collections.fold
 
 sealed interface BotStrategy {
@@ -19,6 +17,7 @@ sealed interface BotStrategy {
             return when (botLevel) {
                 1 -> OneLayer
                 2 -> TwoLayer
+                3 -> MiniMax
                 else -> Random
             }
         }
@@ -52,15 +51,10 @@ sealed interface BotStrategy {
         }
     }
 
-    object Perfect : BotStrategy {
-        override fun getCoordinates(gameState: GameState): Result<Coordinates, Throwable> {
-            TODO("Not yet implemented")
-        }
-    }
-
     object MiniMax : BotStrategy {
         override fun getCoordinates(gameState: GameState): Result<Coordinates, Throwable> {
-            TODO("Not yet implemented")
+            val choice = minimax(gameState.board, gameState.currentPlayerInfo, gameState.currentPlayerInfo, true, 0)
+            return Ok(choice.option.coordinates)
         }
     }
 }
@@ -84,12 +78,38 @@ fun getWinningCoordinates(board: Board, playerInfo: PlayerInfo): Result<Coordina
     return runCatching {
         board.getRemainingCoordinates()
             .first { coordinates ->
-                val moveRequest = MoveRequest(coordinates, playerInfo, board.getNextMoveNumber())
+                val moveRequest = MoveRequest(coordinates, playerInfo)
                 val newBoard = makeMove(moveRequest, board)
                 val winner = newBoard.checkForWinner()
                 winner == playerInfo
             }
     }.mapError { Throwable("No winning move") }
+}
+
+data class Choice<S, T>(val option: S, val value: T, val depth: Int)
+
+fun minimax(board: Board, myPlayer: PlayerInfo, currentPlayer: PlayerInfo, isMax: Boolean, depth: Int): Choice<MoveRequest, Int> {
+    val winner = board.checkForWinner()
+    if (winner == myPlayer) return Choice(board.moves.last(), 10 - depth, depth)
+    if (winner == PlayerInfo.nextPlayer(myPlayer)) return Choice(board.moves.last(), -10 + depth, depth)
+    if (board.moves.count() == (board.bounds * board.bounds)) return Choice(board.moves.last(), 0, depth)
+
+    fun comparison(a: Choice<MoveRequest, Int>, b: Choice<MoveRequest, Int>) : Choice<MoveRequest, Int> {
+        return if (isMax) {
+            if (a.value > b.value) a else b
+        } else {
+            if (a.value < b.value) a else b
+        }
+    }
+
+    val choices = board.getRemainingCoordinates()
+        .map { coordinates ->
+            val moveRequest = MoveRequest(coordinates, currentPlayer)
+            val updateBoard = makeMove(moveRequest, board)
+            minimax(updateBoard, myPlayer, PlayerInfo.nextPlayer(currentPlayer), !isMax, depth + 1)
+        }
+
+    return choices.reduce { acc, choice -> comparison(acc, choice) }
 }
 
 // TODO rewrite check for winner with this setup. Looks much easier to understand.

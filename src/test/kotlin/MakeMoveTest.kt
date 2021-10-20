@@ -5,7 +5,7 @@ internal class MakeMoveTest {
     @Test
     fun `move on board increases move count by 1`() {
         val oldBoard = getEmptyBoard(3)
-        val request = MoveRequest(Coordinates(1, 1), PlayerInfo.Two, oldBoard.getNextMoveNumber())
+        val request = MoveRequest(Coordinates(1, 1), PlayerInfo.Two)
         val newBoard = makeMove(request, oldBoard)
 
         assertTrue(oldBoard.moves.size < newBoard.moves.size, "newBoard should be larger than old board")

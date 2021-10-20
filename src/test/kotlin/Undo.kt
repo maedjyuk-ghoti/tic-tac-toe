@@ -12,7 +12,7 @@ internal class Undo {
 
     @Test
     fun `undoing valid board returns new board`() {
-        val board = Board(listOf(MoveRequest(Coordinates(0, 0), PlayerInfo.One, 0)), 3)
+        val board = Board(listOf(MoveRequest(Coordinates(0, 0), PlayerInfo.One)), 3)
         val result = board.undoMove()
         assertNotNull(result.component1(), "Should be a valid undo")
         val newBoard = result.component1()!!

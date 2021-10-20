@@ -6,14 +6,14 @@ import GameState
 import PlayerInfo
 import com.github.michaelbull.result.*
 
-sealed class Player {
-    abstract fun getAction(gameState: GameState): Result<Action, Throwable>
+sealed interface Player {
+    fun getAction(gameState: GameState): Result<Action, Throwable>
 
     class Human(
         private val playerInfo: PlayerInfo,
         private val readIn: () -> String?,
         private val printOut: (String) -> Unit
-    ): Player() {
+    ): Player {
 
         override fun getAction(gameState: GameState): Result<Action, Throwable> {
             return requestInput(playerInfo.name, printOut, readIn)
@@ -39,7 +39,7 @@ sealed class Player {
         private val playerInfo: PlayerInfo,
         private val printOut: (String, String) -> Unit,
         private val botStrategy: BotStrategy
-    ) : Player() {
+    ) : Player {
         override fun getAction(gameState: GameState): Result<Action, Throwable> {
             return botStrategy.getCoordinates(gameState)
                 .onSuccess { printOut(playerInfo.name, "m ${it.x} ${it.y}") }
