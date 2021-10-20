@@ -41,7 +41,7 @@ sealed interface Player {
         private val botStrategy: BotStrategy
     ) : Player {
         override fun getAction(gameState: GameState): Result<Action, Throwable> {
-            return botStrategy.getCoordinates(gameState)
+            return botStrategy.getCoordinates(gameState, playerInfo)
                 .onSuccess { printOut(playerInfo.name, "m ${it.x} ${it.y}") }
                 .map { coordinates -> Action.Move(coordinates) }
         }

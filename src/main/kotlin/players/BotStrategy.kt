@@ -10,7 +10,7 @@ import makeMove
 import kotlin.collections.fold
 
 sealed interface BotStrategy {
-    fun getCoordinates(gameState: GameState): Result<Coordinates, Throwable>
+    fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, Throwable>
 
     companion object {
         fun getBotAtLevel(botLevel: Int): BotStrategy {
@@ -24,14 +24,14 @@ sealed interface BotStrategy {
     }
 
     object Random : BotStrategy {
-        override fun getCoordinates(gameState: GameState): Result<Coordinates, Throwable> {
+        override fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, Throwable> {
             return getRandomCoordinates(gameState.board)
         }
     }
 
     object OneLayer : BotStrategy {
-        override fun getCoordinates(gameState: GameState): Result<Coordinates, Throwable> {
-            return getWinningCoordinates(gameState.board, gameState.currentPlayerInfo)
+        override fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, Throwable> {
+            return getWinningCoordinates(gameState.board, botPlayer)
                 .orElse { getRandomCoordinates(gameState.board) }
         }
     }
@@ -44,16 +44,17 @@ sealed interface BotStrategy {
      *  3) else no blocking move
      */
     object TwoLayer : BotStrategy {
-        override fun getCoordinates(gameState: GameState): Result<Coordinates, Throwable> {
-            return getWinningCoordinates(gameState.board, gameState.currentPlayerInfo)
-                .orElse { getBlockingCoordinates(gameState.board, PlayerInfo.nextPlayer(gameState.currentPlayerInfo)) }
+        override fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, Throwable> {
+            return getWinningCoordinates(gameState.board, botPlayer)
+                .orElse { getBlockingCoordinates(gameState.board, PlayerInfo.nextPlayer(botPlayer)) }
                 .orElse { getRandomCoordinates(gameState.board) }
         }
     }
 
     object MiniMax : BotStrategy {
-        override fun getCoordinates(gameState: GameState): Result<Coordinates, Throwable> {
-            val choice = minimax(gameState.board, gameState.currentPlayerInfo, gameState.currentPlayerInfo, 0)
+        private val memo: MutableMap<Set<MoveRequest>, Choice> = mutableMapOf()
+        override fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, Throwable> {
+            val choice = minimax(gameState.board, botPlayer, gameState.currentPlayerInfo, 0, memo)
             return Ok(choice.option)
         }
     }
@@ -94,22 +95,26 @@ data class Choice(val option: Coordinates, val value: Int, val depth: Int) : Com
     }
 }
 
-fun minimax(board: Board, myPlayer: PlayerInfo, currentPlayer: PlayerInfo, depth: Int): Choice {
+fun minimax(board: Board, myPlayer: PlayerInfo, currentPlayer: PlayerInfo, depth: Int, memo: MutableMap<Set<MoveRequest>, Choice>): Choice {
     val winner = board.checkForWinner()
     if (winner == myPlayer) return Choice(board.moves.last().coordinates, (board.totalMovesAllowed() + 1) - depth, depth)
     else if (winner != PlayerInfo.None) return Choice(board.moves.last().coordinates, ((board.totalMovesAllowed() + 1) * -1) + depth, depth)
     else if (board.moves.count() == board.totalMovesAllowed()) return Choice(board.moves.last().coordinates, 0, depth)
 
-    val compare: (Choice, Choice) -> Choice = if (myPlayer == currentPlayer) ::maxOf else ::minOf
-    val choice = board.getRemainingCoordinates()
-        .map { coordinates ->
-            val moveRequest = MoveRequest(coordinates, currentPlayer)
-            val updateBoard = makeMove(moveRequest, board)
-            val nextPlayer = PlayerInfo.nextPlayer(currentPlayer)
-            val result = minimax(updateBoard, myPlayer, nextPlayer, depth + 1)
-            result.copy(option = updateBoard.moves.last().coordinates)
-        }.reduce(compare)
+    val choice = if (memo.contains(board.moves.toSet())) memo.getValue(board.moves.toSet())
+    else {
+        val compare: (Choice, Choice) -> Choice = if (myPlayer == currentPlayer) ::maxOf else ::minOf
+        board.getRemainingCoordinates()
+            .map { coordinates ->
+                val moveRequest = MoveRequest(coordinates, currentPlayer)
+                val updateBoard = makeMove(moveRequest, board)
+                val nextPlayer = PlayerInfo.nextPlayer(currentPlayer)
+                val result = minimax(updateBoard, myPlayer, nextPlayer, depth + 1, memo)
+                result.copy(option = updateBoard.moves.last().coordinates)
+            }.reduce(compare)
+    }
 
+    memo[board.moves.toSet()] = choice
     return choice
 }
 
