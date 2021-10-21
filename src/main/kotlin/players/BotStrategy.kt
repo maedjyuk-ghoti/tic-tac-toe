@@ -5,9 +5,9 @@ import Coordinates
 import GameState
 import MoveRequest
 import PlayerInfo
+import checkForWinner
 import com.github.michaelbull.result.*
 import makeMove
-import kotlin.collections.fold
 
 sealed interface BotStrategy {
     fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, Throwable>
@@ -65,23 +65,19 @@ fun getRandomCoordinates(board: Board): Result<Coordinates, Throwable> {
         .mapError { Throwable("No available moves") }
 }
 
-/**
- * Returns the [Coordinates] to block [PlayerInfo] if they exist
- */
+/** Return the [Coordinates] to block [PlayerInfo] if they exist **/
 fun getBlockingCoordinates(board: Board, playerInfo: PlayerInfo): Result<Coordinates, Throwable> {
     return getWinningCoordinates(board, playerInfo)
 }
 
-/**
- * Return the winning [Coordinates] for [PlayerInfo] if they exist.
- */
+/** Return the winning [Coordinates] for [PlayerInfo] on the [Board] if they exist. **/
 fun getWinningCoordinates(board: Board, playerInfo: PlayerInfo): Result<Coordinates, Throwable> {
     return runCatching {
         board.getRemainingCoordinates()
             .first { coordinates ->
                 val moveRequest = MoveRequest(coordinates, playerInfo)
                 val newBoard = makeMove(moveRequest, board)
-                val winner = newBoard.checkForWinner()
+                val winner = checkForWinner(newBoard)
                 winner == playerInfo
             }
     }.mapError { Throwable("No winning move") }
@@ -96,7 +92,7 @@ data class Choice(val option: Coordinates, val value: Int, val depth: Int) : Com
 }
 
 fun minimax(board: Board, myPlayer: PlayerInfo, currentPlayer: PlayerInfo, depth: Int, memo: MutableMap<Set<MoveRequest>, Choice>): Choice {
-    val winner = board.checkForWinner()
+    val winner = checkForWinner(board)
     if (winner == myPlayer) return Choice(board.moves.last().coordinates, (board.totalMovesAllowed() + 1) - depth, depth)
     else if (winner != PlayerInfo.None) return Choice(board.moves.last().coordinates, ((board.totalMovesAllowed() + 1) * -1) + depth, depth)
     else if (board.moves.count() == board.totalMovesAllowed()) return Choice(board.moves.last().coordinates, 0, depth)
@@ -116,51 +112,4 @@ fun minimax(board: Board, myPlayer: PlayerInfo, currentPlayer: PlayerInfo, depth
 
     memo[board.moves.toSet()] = choice
     return choice
-}
-
-// TODO rewrite check for winner with this setup. Looks much easier to understand.
-fun getWinningCoordinates2(board: Board, playerInfo: PlayerInfo): Result<Coordinates, Throwable> {
-    val myMoves = board.moves.filter { request -> request.playerInfo == playerInfo }
-    val moves = myMoves.associateBy { request -> request.coordinates }
-    val magicNumber = List(board.bounds) { it + 1 }.fold(0) { acc, i -> acc + i }
-
-    for (i in 0 until board.bounds) {
-        val columnSquares = moves.filter { (coordinates, _) -> coordinates.x == i }
-        if (columnSquares.count() == board.bounds - 1) {
-            val partialMagicNumber = columnSquares.map { (coordinates, _) -> coordinates.y + 1 }.fold(0) { acc, n -> acc + n }
-            val missingY = magicNumber - partialMagicNumber - 1
-            val coordinates = Coordinates(i, missingY)
-            if (!board.moves.map(MoveRequest::coordinates).contains(coordinates)) return Ok(coordinates)
-        }
-
-        val rowSquares = moves.filter { (coordinates, _) -> coordinates.y == i}
-        if (rowSquares.count() == board.bounds - 1) {
-            val partialMagicNumber = rowSquares.map { (coordinates, _) -> coordinates.x + 1 }.fold(0) { acc, n -> acc + n }
-            val missingX = magicNumber - partialMagicNumber - 1
-            val coordinates = Coordinates(missingX, i)
-            if (!board.moves.map(MoveRequest::coordinates).contains(coordinates)) return Ok(coordinates)
-        }
-    }
-
-    val diagonalSquares = moves.filter { (coordinates, _) -> (coordinates.x + coordinates.y) == (board.bounds - 1) }
-    if (diagonalSquares.count() == board.bounds - 1) {
-        val partialMagicNumberX = diagonalSquares.map { (coordinates, _) -> coordinates.x + 1 }.fold(0) { acc, n -> acc + n }
-        val missingX = magicNumber - partialMagicNumberX - 1
-        val partialMagicNumberY = diagonalSquares.map { (coordinates, _) -> coordinates.y + 1 }.fold(0) { acc, n -> acc + n }
-        val missingY = magicNumber - partialMagicNumberY - 1
-        val coordinates = Coordinates(missingX, missingY)
-        if (!board.moves.map(MoveRequest::coordinates).contains(coordinates)) return Ok(coordinates)
-    }
-
-    val antiDiagonalSquares = moves.filter { (coordinates, _) -> coordinates.x == coordinates.y }
-    if (antiDiagonalSquares.count() == board.bounds - 1) {
-        val partialMagicNumberX = antiDiagonalSquares.map { (coordinates, _) -> coordinates.x + 1 }.fold(0) { acc, n -> acc + n }
-        val missingX = magicNumber - partialMagicNumberX - 1
-        val partialMagicNumberY = antiDiagonalSquares.map { (coordinates, _) -> coordinates.y + 1 }.fold(0) { acc, n -> acc + n }
-        val missingY = magicNumber - partialMagicNumberY - 1
-        val coordinates = Coordinates(missingX, missingY)
-        if (!board.moves.map(MoveRequest::coordinates).contains(coordinates)) return Ok(coordinates)
-    }
-
-    return Err(Throwable("No winning move"))
 }

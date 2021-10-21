@@ -17,7 +17,7 @@ sealed interface Action {
         override fun act(gameState: GameState): Result<GameState, Throwable> {
             return validate(MoveRequest(coordinates, gameState.currentPlayerInfo), gameState.board)
                 .map { request -> makeMove(request, gameState.board) }
-                .map { updatedBoard -> updatedBoard.checkForWinner() to updatedBoard }
+                .map { updatedBoard -> checkForWinner(updatedBoard) to updatedBoard }
                 .map { (winner, updatedBoard) -> GameState(updatedBoard, PlayerInfo.nextPlayer(gameState.currentPlayerInfo), winner) }
         }
     }
@@ -30,12 +30,7 @@ sealed interface Action {
     }
 }
 
-/**
- * Checks that a [MoveRequest] is valid
- *
- * @param request The requested move to evaluate
- * @return A [Result] containing a validated [MoveRequest] or a [Throwable]
- */
+/** Return [MoveRequest] if it's valid on [Board] **/
 fun validate(request: MoveRequest, board: Board): Result<MoveRequest, Throwable> {
     if (!isValidCoordinate(request.coordinates.x, board.bounds)) return Err(Throwable("x coordinate is outside the bounds"))
     if (!isValidCoordinate(request.coordinates.y, board.bounds)) return Err(Throwable("y coordinate is outside the bounds"))
@@ -51,7 +46,7 @@ fun areCoordinatesTaken(coordinates: Coordinates, moves: List<MoveRequest>): Boo
     return moves.firstOrNull { moveRequest -> moveRequest.coordinates == coordinates } != null
 }
 
-/** Play the [MoveRequest] and return the new [Board] **/
+/** Return [Board] after [MoveRequest] is played **/
 fun makeMove(request: MoveRequest, board: Board): Board {
     val updatedMoves = board.moves.plus(request)
     return Board(updatedMoves, board.bounds)

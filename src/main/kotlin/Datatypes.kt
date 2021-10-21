@@ -89,11 +89,8 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
         return Ok(Board(moves.subList(0, moves.count() - times), bounds))
     }
 
-    /**
-     * Check the [Board] for a winning player. Return [PlayerInfo.None] if no winner is found.
-     * Currently, only works for diagonal wins on an NxN board where N is even.
-     *  Fix would be to check the 2 diagonals extra diagonals starting from x = 1
-     **/
+    /** Check the [Board] for a winning player. Return [PlayerInfo.None] if no winner is found. **/
+    @Deprecated(message = "Use checkForWinner(board: Board) instead", replaceWith = ReplaceWith(expression = "checkForWinner(this)"))
     fun checkForWinner(): PlayerInfo {
         val grid = moves.associate { request -> request.coordinates to request.playerInfo }
 
@@ -165,3 +162,34 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
  * @param winner The player who has won the game, [PlayerInfo.None] indicates there is no winner
  */
 data class GameState(val board: Board, val currentPlayerInfo: PlayerInfo, val winner: PlayerInfo)
+
+/** Check the [Board] for a winning player. Return [PlayerInfo.None] if no winner is found. **/
+fun checkForWinner(board: Board): PlayerInfo {
+    if (board.moves.count() < ((board.bounds * 2) - 1)) return PlayerInfo.None
+    // Group moves based on who played them
+    return board.moves.groupBy(MoveRequest::playerInfo, MoveRequest::coordinates)
+        .asSequence()
+        .filter { (_, moveSet) -> moveSet.count() >= board.bounds }
+        .firstOrNull { (_, moveSet) -> checkForConsecutiveCoordinates(moveSet, board.bounds) }
+        ?.component1() ?: PlayerInfo.None
+}
+
+fun checkForConsecutiveCoordinates(moveSet: List<Coordinates>, bounds: Int): Boolean {
+    // Not enough moves to win
+    if (moveSet.count() < bounds) return false
+
+    // Using a list as a 'functional' for loop, e.g. for (i in 0 until board.bounds) ...
+    // 1) sort into coordinates on a row
+    // 2) count number of coordinates on each row
+    // 3) if that count is 3, on a 3x3, they win
+    val isWinOnRow = List(bounds) { index -> moveSet.filter { (x, _) -> x == index } }.map(List<Any>::count).contains(bounds)
+    // same as row
+    val isWinOnColumn = List(bounds) { index -> moveSet.filter { (_, y) -> y == index } }.map(List<Any>::count).contains(bounds)
+    // There is only one (anti)diagonal, no need to loop
+    // (0,0) -> (n,n)
+    val isWinOnDiagonal = moveSet.count { (x, y) -> x == y } == bounds
+    // (0,n) -> (n,0), add 1 in the comparison to account for array indexes
+    val isWinOnAntiDiagonal = moveSet.count { (x, y) -> (x + y + 1) == bounds } == bounds
+
+    return isWinOnRow || isWinOnColumn || isWinOnDiagonal || isWinOnAntiDiagonal
+}

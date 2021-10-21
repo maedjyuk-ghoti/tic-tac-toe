@@ -1,7 +1,6 @@
 package players
 
 import Action
-import Coordinates
 import GameState
 import PlayerInfo
 import com.github.michaelbull.result.*
