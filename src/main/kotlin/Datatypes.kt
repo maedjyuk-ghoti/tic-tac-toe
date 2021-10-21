@@ -2,7 +2,24 @@ import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 
-data class GameOptions(val boardSize: Int, val players: Int, val botLevel: Int)
+data class GameOptions(val boardSize: Int, val numberOfHumans: Int, val humanPosition: Int, val botLevel: Int) {
+    companion object {
+        fun parse(opts: Map<String, List<String>>): Result<GameOptions, Throwable> {
+            val gameOptions = GameOptions(
+                boardSize = opts["--board-size"]?.firstOrNull()?.toInt() ?: 3,
+                numberOfHumans = opts["--number-of-humans"]?.firstOrNull()?.toInt() ?: 2,
+                humanPosition = opts["--human-position"]?.firstOrNull()?.toInt() ?: 0,
+                botLevel = opts["--bot-level"]?.firstOrNull()?.toInt() ?: 0,
+            )
+
+            if (gameOptions.boardSize < 1) return Err(Throwable("Sorry. Only positive board sizes are supported at the moment."))
+            if (gameOptions.numberOfHumans > 2) return Err(Throwable("Sorry. I only supports 2 players at the moment."))
+            if (gameOptions.numberOfHumans + gameOptions.humanPosition < 2) return Err(Throwable("Must set player position if less than 2 humans will be playing."))
+
+            return Ok(gameOptions)
+        }
+    }
+}
 
 /**
  * A pair of X, Y coordinates.

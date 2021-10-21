@@ -7,10 +7,15 @@ A simple Tic-Tac-Toe game usable from the command line
 
 The board may be any size less than 100. The game behaves correctly when board size is an odd number.
 
-### Number of Players
-`--players 1`
+### Number of Humans
+`--number-of-humans 1`
 
 Currently, only 1 or 2 players are supported. When number of players is 1, a level 0 bot will play.
+
+### Human Position
+`--human-position 1`
+
+If there is only 1 human, select whether they want to be player 1 or player 2.
 
 ### Bot Level
 `--bot-level 0`

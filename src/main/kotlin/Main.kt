@@ -2,25 +2,23 @@ import com.github.michaelbull.result.*
 import players.*
 import kotlin.math.log10
 
-val actions = """
-    |Actions:
-    |   Move: m [x y]
-    |   Undo: u
-    |
+val options = """
+    | Options:
+    |   --board-size 3
+    |       Board size for NxN board.
+    |   --number-of-humans 2
+    |       Number of human players this game (limit of 2).
+    |   --human-position 1
+    |       If only 1 human player, do you want to go first or second?
+    |   --bot-level 3
+    |       Difficulty of the AI. Available levels 0-3
 """.trimMargin()
 
-fun main(args: Array<String>) {
-    println("Welcome to Tic-Tac-Toe!")
-    println("Program arguments: ${args.joinToString()}")
-
-    val opts = getopt(args)
-    val gameOptions = GameOptions(
-        boardSize = opts["--board-size"]?.firstOrNull()?.toInt() ?: 3,
-        players = opts["--players"]?.firstOrNull()?.toInt() ?: 2,
-        botLevel = opts["--bot-level"]?.firstOrNull()?.toInt() ?: 0,
-    )
-    tictactoe(gameOptions)
-}
+val actions = """
+    | Actions:
+    |   Move: m [x y]
+    |   Undo: u
+""".trimMargin()
 
 fun getopt(args: Array<String>): Map<String, List<String>> {
     return args.fold(mutableListOf()) { acc: MutableList<MutableList<String>>, s: String ->
@@ -31,12 +29,27 @@ fun getopt(args: Array<String>): Map<String, List<String>> {
     }.associate { it[0] to it.drop(1) }
 }
 
+fun main(args: Array<String>) {
+    println("Welcome to Tic-Tac-Toe!")
+    println("Program arguments: ${args.joinToString()}")
+
+    val opts = getopt(args)
+    GameOptions.parse(opts)
+        .fold(
+            success = ::tictactoe,
+            failure = { throwable ->
+                println(throwable.message)
+                println(options)
+            }
+        )
+}
+
 /** Start a game of tic-tac-toe **/
 fun tictactoe(gameOptions: GameOptions) {
     println("Welcome to TicTacToe")
     println(actions)
 
-    val players = getPlayers(gameOptions.players, gameOptions.botLevel)
+    val players = getPlayers(gameOptions.numberOfHumans, gameOptions.humanPosition, gameOptions.botLevel)
     var gameState = GameState(Board(emptyList(), gameOptions.boardSize), PlayerInfo.One, PlayerInfo.None)
 
     while (true) {
@@ -62,16 +75,18 @@ fun tictactoe(gameOptions: GameOptions) {
     }
 }
 
-fun getPlayers(numPlayers: Int, botLevel: Int): Map<PlayerInfo, Player> {
-    return if (numPlayers == 1) {
-        mapOf(
-            PlayerInfo.One to Player.Human(PlayerInfo.One, ::readLine, ::humanPrompt),
-            PlayerInfo.Two to Player.Bot(PlayerInfo.Two, ::botPrompt, BotStrategy.getBotAtLevel(botLevel))
-        )
-    } else {
-        mapOf(
+fun getPlayers(numberOfHumans: Int, humanPosition: Int, botLevel: Int): Map<PlayerInfo, Player> {
+    return if (numberOfHumans == 2) {
+        return mapOf(
             PlayerInfo.One to Player.Human(PlayerInfo.One, ::readLine, ::humanPrompt),
             PlayerInfo.Two to Player.Human(PlayerInfo.Two, ::readLine, ::humanPrompt)
+        )
+    } else {
+        val humanInfo = if (humanPosition == 1) PlayerInfo.One else PlayerInfo.Two
+        val botInfo = PlayerInfo.nextPlayer(humanInfo)
+        mapOf(
+            humanInfo to Player.Human(humanInfo, ::readLine, ::humanPrompt),
+            botInfo to Player.Bot(botInfo, ::botPrompt, BotStrategy.getBotAtLevel(botLevel))
         )
     }
 }
