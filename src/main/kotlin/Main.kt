@@ -68,8 +68,8 @@ fun tictactoe(gameOptions: GameOptions) {
             .getAction(gameState)
             .andThen { action -> action.act(gameState) }
             .onSuccess { newGameState -> gameState = newGameState }
-            .onFailure { throwable ->
-                println(throwable.message)
+            .onFailure { gameError ->
+                println(gameError.getMessage())
                 println(actions)
             }
     }

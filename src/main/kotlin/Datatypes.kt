@@ -34,12 +34,12 @@ data class Coordinates(val x: Int, val y: Int) {
          * @param input A string that may contain usable info for tictactoe
          * @return A [Result] containing the [Coordinates] entered by the [PlayerInfo] or a [Throwable]
          */
-        fun parse(input: String): Result<Coordinates, Throwable> {
+        fun parse(input: String): Result<Coordinates, InputError> {
             val split = input.split(" ")
-            if (split.size != 2) return Err(Throwable("Input needs to be in the form of `x y` coordinates"))
+            if (split.size != 2) return Err(InputError.InvalidCoordinates(input))
 
-            val x = split[0].toIntOrNull() ?: return Err(Throwable("x coordinate was not a valid number"))
-            val y = split[1].toIntOrNull() ?: return Err(Throwable("y coordinate was not a valid number"))
+            val x = split[0].toIntOrNull() ?: return Err(InputError.InvalidCoordinates(input))
+            val y = split[1].toIntOrNull() ?: return Err(InputError.InvalidCoordinates(input))
 
             return Ok(Coordinates(x, y))
         }
@@ -100,9 +100,9 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
         return bounds * bounds
     }
 
-    fun undoMove(times: Int = 1): Result<Board, Throwable> {
-        if (moves.isEmpty()) return Err(Throwable("No moves to undo"))
-        if (times > moves.count()) return Err(Throwable("Requested more moves than are present"))
+    fun undoMove(times: Int = 1): Result<Board, GameError> {
+        if (moves.isEmpty()) return Err(UndoError.NoMovesToUndo)
+        if (times > moves.count()) return Err(UndoError.RequestTooLarge)
         return Ok(Board(moves.subList(0, moves.count() - times), bounds))
     }
 
