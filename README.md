@@ -20,7 +20,7 @@ If there is only 1 human, select whether they want to be player 1 or player 2.
 ### Bot Level
 `--bot-level 0`
 
-If a bot is used, it will use the bot level set here. Current bot levels are 0, 1, and 2.
+If a bot is used, it will use the bot level set here. Current bot levels are 0-3.
 
 ## Motivation
 An interviewer had me make a tic-tac-toe game in 40 minutes. I struggled through it and made many bad decisions under the pressure. Here is a version that, while it isn't perfect, is much more in line with how I program and think about problems. The initial commit took 2.5 hours with the drawing taking the largest chunk of time. More time has since been spent improving that work.
