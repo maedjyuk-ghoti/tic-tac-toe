@@ -3,6 +3,7 @@ package players
 import Board
 import Coordinates
 import GameState
+import MoveError
 import MoveRequest
 import PlayerInfo
 import checkForWinner
@@ -10,7 +11,7 @@ import com.github.michaelbull.result.*
 import makeMove
 
 sealed interface BotStrategy {
-    fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, Throwable>
+    fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, MoveError>
 
     companion object {
         fun getBotAtLevel(botLevel: Int): BotStrategy {
@@ -24,13 +25,13 @@ sealed interface BotStrategy {
     }
 
     object Random : BotStrategy {
-        override fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, Throwable> {
+        override fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, MoveError> {
             return getRandomCoordinates(gameState.board)
         }
     }
 
     object OneLayer : BotStrategy {
-        override fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, Throwable> {
+        override fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, MoveError> {
             return getWinningCoordinates(gameState.board, botPlayer)
                 .orElse { getRandomCoordinates(gameState.board) }
         }
@@ -44,7 +45,7 @@ sealed interface BotStrategy {
      *  3) else no blocking move
      */
     object TwoLayer : BotStrategy {
-        override fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, Throwable> {
+        override fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, MoveError> {
             return getWinningCoordinates(gameState.board, botPlayer)
                 .orElse { getBlockingCoordinates(gameState.board, PlayerInfo.nextPlayer(botPlayer)) }
                 .orElse { getRandomCoordinates(gameState.board) }
@@ -53,25 +54,25 @@ sealed interface BotStrategy {
 
     object MiniMax : BotStrategy {
         private val memo: MutableMap<Set<MoveRequest>, Choice> = mutableMapOf()
-        override fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, Throwable> {
+        override fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, MoveError> {
             val choice = minimax(gameState.board, botPlayer, gameState.currentPlayerInfo, 0, memo)
             return Ok(choice.option)
         }
     }
 }
 
-fun getRandomCoordinates(board: Board): Result<Coordinates, Throwable> {
+fun getRandomCoordinates(board: Board): Result<Coordinates, MoveError> {
     return runCatching { board.getRemainingCoordinates().random() }
-        .mapError { Throwable("No available moves") }
+        .mapError { MoveError.NoAvailableMoves }
 }
 
 /** Return the [Coordinates] to block [PlayerInfo] if they exist **/
-fun getBlockingCoordinates(board: Board, playerInfo: PlayerInfo): Result<Coordinates, Throwable> {
+fun getBlockingCoordinates(board: Board, playerInfo: PlayerInfo): Result<Coordinates, MoveError> {
     return getWinningCoordinates(board, playerInfo)
 }
 
 /** Return the winning [Coordinates] for [PlayerInfo] on the [Board] if they exist. **/
-fun getWinningCoordinates(board: Board, playerInfo: PlayerInfo): Result<Coordinates, Throwable> {
+fun getWinningCoordinates(board: Board, playerInfo: PlayerInfo): Result<Coordinates, MoveError> {
     return runCatching {
         board.getRemainingCoordinates()
             .first { coordinates ->
@@ -80,7 +81,7 @@ fun getWinningCoordinates(board: Board, playerInfo: PlayerInfo): Result<Coordina
                 val winner = checkForWinner(newBoard)
                 winner == playerInfo
             }
-    }.mapError { Throwable("No winning move") }
+    }.mapError { MoveError.NoWinningMove }
 }
 
 data class Choice(val option: Coordinates, val value: Int, val depth: Int) : Comparable<Choice> {
