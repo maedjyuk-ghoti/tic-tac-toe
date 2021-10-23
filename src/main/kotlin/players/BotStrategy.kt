@@ -114,3 +114,38 @@ fun minimax(board: Board, myPlayer: PlayerInfo, currentPlayer: PlayerInfo, depth
     memo[board.moves.toSet()] = choice
     return choice
 }
+
+fun alphabeta(board: Board, maximizingPlayerInfo: PlayerInfo, currentPlayer: PlayerInfo, depth: Int, alpha: Int, beta: Int): Choice {
+    if (depth == 0) return Choice(board.moves.last().coordinates, depth, depth)
+
+    val winner = checkForWinner(board)
+    if (winner == maximizingPlayerInfo) return Choice(board.moves.last().coordinates, depth, depth)
+    else if (winner != PlayerInfo.None) return Choice(board.moves.last().coordinates, depth, depth)
+    else if (board.moves.count() == board.totalMovesAllowed()) return Choice(board.moves.last().coordinates, 0, depth)
+
+    if (maximizingPlayerInfo == currentPlayer) {
+        val choice = board.getRemainingCoordinates()
+            .map { coordinates ->
+                val moveRequest = MoveRequest(coordinates, currentPlayer)
+                val updateBoard = makeMove(moveRequest, board)
+                val nextPlayer = PlayerInfo.nextPlayer(currentPlayer)
+                val result = alphabeta(updateBoard, maximizingPlayerInfo, nextPlayer, depth - 1, alpha, beta)
+                result.copy(option = updateBoard.moves.last().coordinates)
+            }.filter { it.value < beta }
+            .reduce(::maxOf)
+
+        return choice.copy(value = maxOf(choice.value, alpha))
+    } else {
+        val choice = board.getRemainingCoordinates()
+            .map { coordinates ->
+                val moveRequest = MoveRequest(coordinates, currentPlayer)
+                val updateBoard = makeMove(moveRequest, board)
+                val nextPlayer = PlayerInfo.nextPlayer(currentPlayer)
+                val result = alphabeta(updateBoard, maximizingPlayerInfo, nextPlayer, depth - 1, alpha, beta)
+                result.copy(option = updateBoard.moves.last().coordinates)
+            }.filter { it.value > alpha }
+            .reduce(::maxOf)
+
+        return choice.copy(value = minOf(choice.value, beta))
+    }
+}

@@ -3,11 +3,10 @@ package players
 import Board
 import Coordinates
 import MoveRequest
-import PlayerInfo
 import org.junit.Test
 import kotlin.test.assertEquals
 
-internal class MinimaxTest {
+internal class AlphaBetaTest {
 
     @Test
     fun `identify winning move on won board`() {
@@ -23,7 +22,7 @@ internal class MinimaxTest {
             ), 4
         )
 
-        val actual = minimax(board, PlayerInfo.One, PlayerInfo.Two, 0, mutableMapOf())
+        val actual = alphabeta(board, PlayerInfo.One, PlayerInfo.Two, board.totalMovesAllowed(), Int.MIN_VALUE, Int.MAX_VALUE)
         val expected = board.moves.last().coordinates
         assertEquals(expected, actual.option, "Should return last move of a won board")
     }
@@ -36,13 +35,11 @@ internal class MinimaxTest {
                 MoveRequest(Coordinates(2, 0), PlayerInfo.Two),
                 MoveRequest(Coordinates(0, 1), PlayerInfo.One),
                 MoveRequest(Coordinates(2, 1), PlayerInfo.Two),
-                MoveRequest(Coordinates(0, 2), PlayerInfo.One),
-                MoveRequest(Coordinates(2, 2), PlayerInfo.Two),
-            ), 4
+            ), 3
         )
 
-        val actual = minimax(board, PlayerInfo.One, PlayerInfo.One, 0, mutableMapOf())
-        val expected = Coordinates(0, 3)
+        val actual = alphabeta(board, PlayerInfo.One, PlayerInfo.One, board.totalMovesAllowed(), Int.MIN_VALUE, Int.MAX_VALUE)
+        val expected = Coordinates(0, 2)
         assertEquals(expected, actual.option, "Best move possible is the winning move")
     }
 
@@ -58,14 +55,7 @@ internal class MinimaxTest {
         )
 
         val expected = Coordinates(0, 2)
-        val actual = minimax(board, PlayerInfo.Two, PlayerInfo.One, 8, mutableMapOf())
+        val actual = alphabeta(board, PlayerInfo.Two, PlayerInfo.One, board.totalMovesAllowed(), Int.MIN_VALUE, Int.MAX_VALUE)
         assertEquals(expected, actual.option, "Best move possible is the winning move")
-    }
-
-    @Test
-    fun `find first move`() {
-        val board = Board(emptyList(), 3)
-        val actual = minimax(board, PlayerInfo.One, PlayerInfo.One, board.totalMovesAllowed(), mutableMapOf())
-        println(actual)
     }
 }

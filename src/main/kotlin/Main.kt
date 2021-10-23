@@ -53,7 +53,7 @@ fun tictactoe(gameOptions: GameOptions) {
     var gameState = GameState(Board(emptyList(), gameOptions.boardSize), PlayerInfo.One, PlayerInfo.None)
 
     while (true) {
-        println(drawBoard(gameState.board))
+        println(drawBoard2(gameState.board))
         if (gameState.winner != PlayerInfo.None) {
             println("Player ${gameState.winner} wins!")
             break
@@ -76,18 +76,27 @@ fun tictactoe(gameOptions: GameOptions) {
 }
 
 fun getPlayers(numberOfHumans: Int, humanPosition: Int, botLevel: Int): Map<PlayerInfo, Player> {
-    return if (numberOfHumans == 2) {
-        return mapOf(
-            PlayerInfo.One to Player.Human(PlayerInfo.One, ::readLine, ::humanPrompt),
-            PlayerInfo.Two to Player.Human(PlayerInfo.Two, ::readLine, ::humanPrompt)
-        )
-    } else {
-        val humanInfo = if (humanPosition == 1) PlayerInfo.One else PlayerInfo.Two
-        val botInfo = PlayerInfo.nextPlayer(humanInfo)
-        mapOf(
-            humanInfo to Player.Human(humanInfo, ::readLine, ::humanPrompt),
-            botInfo to Player.Bot(botInfo, ::botPrompt, BotStrategy.getBotAtLevel(botLevel))
-        )
+    return when (numberOfHumans) {
+        2 -> {
+            mapOf(
+                PlayerInfo.One to Player.Human(PlayerInfo.One, ::readLine, ::humanPrompt),
+                PlayerInfo.Two to Player.Human(PlayerInfo.Two, ::readLine, ::humanPrompt)
+            )
+        }
+        1 -> {
+            val humanInfo = if (humanPosition == 1) PlayerInfo.One else PlayerInfo.Two
+            val botInfo = PlayerInfo.nextPlayer(humanInfo)
+            mapOf(
+                humanInfo to Player.Human(humanInfo, ::readLine, ::humanPrompt),
+                botInfo to Player.Bot(botInfo, ::botPrompt, BotStrategy.getBotAtLevel(botLevel))
+            )
+        }
+        else -> {
+            mapOf(
+                PlayerInfo.One to Player.Bot(PlayerInfo.One, ::botPrompt, BotStrategy.getBotAtLevel(botLevel)),
+                PlayerInfo.Two to Player.Bot(PlayerInfo.Two, ::botPrompt, BotStrategy.getBotAtLevel(botLevel))
+            )
+        }
     }
 }
 
@@ -142,6 +151,23 @@ fun drawBoard(board: Board): String {
     buffer.append("\n")
 
     return buffer.toString()
+}
+
+fun drawBoard2(board: Board): String {
+    val lastIndex = board.bounds - 1
+    val grid = board.moves.associate { request -> request.coordinates to request.playerInfo }
+
+    val rowSeparator = List(board.bounds) { "----" }.joinToString(prefix = "  ", separator = "", postfix = "\n")
+    val columnNumbers = List(board.bounds) { index -> appendWithSpaceBefore(4, index) }.joinToString(separator = "")
+
+    return List(board.bounds) { i ->
+        val y = lastIndex - i
+        val indexString = appendWithSpaceAfter(2, y)
+        List(board.bounds) { x ->
+            val square = grid.getOrDefault(Coordinates(x, y), PlayerInfo.None)
+            square.symbol
+        }.joinToString(prefix = "$indexString ", separator = " | ")
+    }.joinToString(prefix = "\n", separator = "\n$rowSeparator", postfix = "\n$columnNumbers")
 }
 
 fun appendWithSpaceBefore(spaceCount: Int, number: Int): String {

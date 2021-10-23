@@ -9,9 +9,9 @@ internal class BoardTest {
         val board = Board(emptyList(), bounds)
         val remainingCoordinates = board.getRemainingCoordinates()
         assertEquals(bounds * bounds, remainingCoordinates.count(), "All coordinates should be available on an empty board")
-        for (remainingCoordinate in remainingCoordinates) {
-            assertTrue(remainingCoordinate.x in 0 until bounds, "0 <= x < bounds")
-            assertTrue(remainingCoordinate.y in 0 until bounds, "0 <= y < bounds")
+        remainingCoordinates.forEach { coordinates ->
+            assertTrue(coordinates.x in 0 until bounds, "0 <= x < bounds")
+            assertTrue(coordinates.y in 0 until bounds, "0 <= y < bounds")
         }
     }
 
