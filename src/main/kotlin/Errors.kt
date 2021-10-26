@@ -2,6 +2,26 @@ sealed interface GameError {
     fun getMessage(): String
 }
 
+sealed class GameOptionsError : GameError {
+    object InvalidBoardSize : GameOptionsError() {
+        override fun getMessage(): String {
+            return "Sorry. Only positive board sizes are supported at the moment."
+        }
+    }
+
+    object InvalidHumanCount : GameOptionsError() {
+        override fun getMessage(): String {
+            return "Sorry. I only supports 2 players at the moment."
+        }
+    }
+
+    object InvalidHumanPosition : GameOptionsError() {
+        override fun getMessage(): String {
+            return "Must set player position if less than 2 humans will be playing."
+        }
+    }
+}
+
 sealed class InputError : GameError {
     object MissingInput : InputError() {
         override fun getMessage(): String {

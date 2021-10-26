@@ -37,68 +37,54 @@ fun main(args: Array<String>) {
     GameOptions.parse(opts)
         .fold(
             success = ::tictactoe,
-            failure = { throwable ->
-                println(throwable.message)
-                println(options)
-            }
-        )
+            failure = { error -> putLine(error.getMessage()).flatMap { putLine(options) } }
+        ).unsafeRun()
 }
 
 /** Start a game of tic-tac-toe **/
-fun tictactoe(gameOptions: GameOptions) {
-    println("Welcome to TicTacToe")
-    println(actions)
-
-    val players = getPlayers(gameOptions.numberOfHumans, gameOptions.humanPosition, gameOptions.botLevel)
-    var gameState = GameState(Board(emptyList(), gameOptions.boardSize), PlayerInfo.One, PlayerInfo.None)
-
-    while (true) {
-        println(drawBoard(gameState.board))
-        if (gameState.winner != PlayerInfo.None) {
-            println("Player ${gameState.winner} wins!")
-            break
+fun tictactoe(gameOptions: GameOptions): IO<Unit> {
+    return putLine("Welcome to TicTacToe")
+        .flatMap { putLine(actions) }
+        .flatMap {
+            val players = getPlayers(gameOptions.numberOfHumans, gameOptions.humanPosition, gameOptions.botLevel)
+            val initialState = GameState(Board(emptyList(), gameOptions.boardSize), PlayerInfo.One, PlayerInfo.None, players)
+            gameLoop(initialState)
         }
+}
 
-        if (gameState.board.moves.count() == gameState.board.totalMovesAllowed()) {
-            println("No more moves available. Game is a tie")
-            break
+fun gameLoop(gameState: GameState): IO<Unit> {
+    return putLine(drawBoard(gameState.board))
+        .flatMap {
+            gameState.players.getValue(gameState.currentPlayerInfo)
+                .getAction(gameState)
         }
-
-        players.getValue(gameState.currentPlayerInfo)
-            .getAction(gameState)
-            .andThen { action -> action.act(gameState) }
-            .onSuccess { newGameState -> gameState = newGameState }
-            .onFailure { gameError ->
-                println(gameError.getMessage())
-                println(actions)
-            }
-    }
+        .flatMap { rAction ->
+            rAction.andThen { action -> action.act(gameState) }
+                .fold({ newGameState ->
+                    if (newGameState.winner != PlayerInfo.None) putLine("Player ${newGameState.winner} wins!")
+                    else if (newGameState.board.moves.count() == newGameState.board.totalMovesAllowed()) putLine("No more moves available. Game is a tie")
+                    else gameLoop(newGameState)
+                }, { gameError ->
+                    putLine(gameError.getMessage())
+                        .flatMap { putLine(actions) }
+                })
+        }
 }
 
 fun getPlayers(numberOfHumans: Int, humanPosition: Int, botLevel: Int): Map<PlayerInfo, Player> {
     return if (numberOfHumans == 2) {
         return mapOf(
-            PlayerInfo.One to Player.Human(PlayerInfo.One, ::readLine, ::humanPrompt),
-            PlayerInfo.Two to Player.Human(PlayerInfo.Two, ::readLine, ::humanPrompt)
+            PlayerInfo.One to Player.Human(PlayerInfo.One),
+            PlayerInfo.Two to Player.Human(PlayerInfo.Two)
         )
     } else {
         val humanInfo = if (humanPosition == 1) PlayerInfo.One else PlayerInfo.Two
         val botInfo = PlayerInfo.nextPlayer(humanInfo)
         mapOf(
-            humanInfo to Player.Human(humanInfo, ::readLine, ::humanPrompt),
-            botInfo to Player.Bot(botInfo, ::botPrompt, BotStrategy.getBotAtLevel(botLevel))
+            humanInfo to Player.Human(humanInfo),
+            botInfo to Player.Bot(botInfo, BotStrategy.getBotAtLevel(botLevel))
         )
     }
-}
-
-fun humanPrompt(name: String) {
-    val ask = "Player %s's turn: ".format(name)
-    print(ask)
-}
-
-fun botPrompt(name: String, move: String) {
-    val ask = "Player %s's turn (Bot): %s".format(name, move)
-    print(ask)
 }
 
 /**

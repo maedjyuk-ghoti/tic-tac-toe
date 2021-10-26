@@ -1,10 +1,11 @@
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
+import players.Player
 
 data class GameOptions(val boardSize: Int, val numberOfHumans: Int, val humanPosition: Int, val botLevel: Int) {
     companion object {
-        fun parse(opts: Map<String, List<String>>): Result<GameOptions, Throwable> {
+        fun parse(opts: Map<String, List<String>>): Result<GameOptions, GameOptionsError> {
             val gameOptions = GameOptions(
                 boardSize = opts["--board-size"]?.firstOrNull()?.toInt() ?: 3,
                 numberOfHumans = opts["--number-of-humans"]?.firstOrNull()?.toInt() ?: 2,
@@ -12,9 +13,9 @@ data class GameOptions(val boardSize: Int, val numberOfHumans: Int, val humanPos
                 botLevel = opts["--bot-level"]?.firstOrNull()?.toInt() ?: 0,
             )
 
-            if (gameOptions.boardSize < 1) return Err(Throwable("Sorry. Only positive board sizes are supported at the moment."))
-            if (gameOptions.numberOfHumans > 2) return Err(Throwable("Sorry. I only supports 2 players at the moment."))
-            if (gameOptions.numberOfHumans + gameOptions.humanPosition < 2) return Err(Throwable("Must set player position if less than 2 humans will be playing."))
+            if (gameOptions.boardSize < 1) return Err(GameOptionsError.InvalidBoardSize)
+            if (gameOptions.numberOfHumans > 2) return Err(GameOptionsError.InvalidHumanCount)
+            if (gameOptions.numberOfHumans + gameOptions.humanPosition < 2) return Err(GameOptionsError.InvalidHumanPosition)
 
             return Ok(gameOptions)
         }
@@ -178,7 +179,7 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
  * @param currentPlayerInfo The player whose turn it is to play
  * @param winner The player who has won the game, [PlayerInfo.None] indicates there is no winner
  */
-data class GameState(val board: Board, val currentPlayerInfo: PlayerInfo, val winner: PlayerInfo)
+data class GameState(val board: Board, val currentPlayerInfo: PlayerInfo, val winner: PlayerInfo, val players: Map<PlayerInfo, Player>)
 
 /** Check the [Board] for a winning player. Return [PlayerInfo.None] if no winner is found. **/
 fun checkForWinner(board: Board): PlayerInfo {

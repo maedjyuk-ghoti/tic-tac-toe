@@ -3,48 +3,49 @@ package players
 import Action
 import GameError
 import GameState
+import IO
 import InputError
 import PlayerInfo
 import com.github.michaelbull.result.*
+import getLine
+import put
 
 sealed interface Player {
-    fun getAction(gameState: GameState): Result<Action, GameError>
+    fun getAction(gameState: GameState): IO<Result<Action, GameError>>
 
     class Human(
         private val playerInfo: PlayerInfo,
-        private val readIn: () -> String?,
-        private val printOut: (String) -> Unit
     ): Player {
 
-        override fun getAction(gameState: GameState): Result<Action, GameError> {
-            return requestInput(playerInfo.name, printOut, readIn)
-                .andThen { input -> Action.parse(input) }
+        override fun getAction(gameState: GameState): IO<Result<Action, GameError>> {
+            return requestInput(playerInfo.name)
+                .map { input -> input.andThen(Action.Companion::parse) }
         }
 
         /**
          * Print a string and retrieve input from the command line.
          *
          * @param name A name by which to address the player
-         * @param printOut A method to print a string out
-         * @param readIn A method that reads a string in
          * @return A [Result] containing the [String] entered by the [PlayerInfo] or a [Throwable]
          */
-        private fun requestInput(name: String, printOut: (String) -> Unit, readIn: () -> String?): Result<String, InputError> {
-            printOut(name)
-            val input = readIn() ?: return Err(InputError.MissingInput)
-            return Ok(input)
+        private fun requestInput(name: String): IO<Result<String, InputError>> {
+            return put("Player %s's turn: ".format(name))
+                .flatMap { getLine() }
         }
     }
 
     class Bot(
         private val playerInfo: PlayerInfo,
-        private val printOut: (String, String) -> Unit,
         private val botStrategy: BotStrategy
     ) : Player {
-        override fun getAction(gameState: GameState): Result<Action, GameError> {
+        override fun getAction(gameState: GameState): IO<Result<Action, GameError>> {
             return botStrategy.getCoordinates(gameState, playerInfo)
-                .onSuccess { printOut(playerInfo.name, "m ${it.x} ${it.y}") }
-                .map { coordinates -> Action.Move(coordinates) }
+                .fold({ coordinates ->
+                    put("Player %s's turn (Bot): %s".format(playerInfo.name, "m ${coordinates.x} ${coordinates.y}"))
+                        .map { Ok(Action.Move(coordinates)) }
+                }, { error ->
+                    IO { Err(error) }
+                })
         }
     }
 }
