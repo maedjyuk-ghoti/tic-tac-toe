@@ -1,6 +1,7 @@
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
+import players.Player
 
 data class GameOptions(val boardSize: Int, val numberOfHumans: Int, val humanPosition: Int, val botLevel: Int) {
     companion object {
@@ -178,7 +179,7 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
  * @param currentPlayerInfo The player whose turn it is to play
  * @param winner The player who has won the game, [PlayerInfo.None] indicates there is no winner
  */
-data class GameState(val board: Board, val currentPlayerInfo: PlayerInfo, val winner: PlayerInfo)
+data class GameState(val board: Board, val currentPlayerInfo: PlayerInfo, val winner: PlayerInfo, val players: Map<PlayerInfo, Player>)
 
 /** Check the [Board] for a winning player. Return [PlayerInfo.None] if no winner is found. **/
 fun checkForWinner(board: Board): PlayerInfo {

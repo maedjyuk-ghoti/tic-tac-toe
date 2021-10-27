@@ -18,14 +18,14 @@ sealed interface Action {
             return validate(MoveRequest(coordinates, gameState.currentPlayerInfo), gameState.board)
                 .map { request -> makeMove(request, gameState.board) }
                 .map { updatedBoard -> checkForWinner(updatedBoard) to updatedBoard }
-                .map { (winner, updatedBoard) -> GameState(updatedBoard, PlayerInfo.nextPlayer(gameState.currentPlayerInfo), winner) }
+                .map { (winner, updatedBoard) -> GameState(updatedBoard, PlayerInfo.nextPlayer(gameState.currentPlayerInfo), winner, gameState.players) }
         }
     }
 
     class Undo(val times: Int) : Action {
         override fun act(gameState: GameState): Result<GameState, GameError> {
             return gameState.board.undoMove(times)
-                .map { updatedBoard -> GameState(updatedBoard, PlayerInfo.backUp(gameState.currentPlayerInfo, times), gameState.winner) }
+                .map { updatedBoard -> GameState(updatedBoard, PlayerInfo.backUp(gameState.currentPlayerInfo, times), gameState.winner, gameState.players) }
         }
     }
 }

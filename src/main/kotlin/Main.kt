@@ -46,32 +46,38 @@ fun main(args: Array<String>) {
 
 /** Start a game of tic-tac-toe **/
 fun tictactoe(gameOptions: GameOptions) {
-    println("Welcome to TicTacToe")
     println(actions)
 
     val players = getPlayers(gameOptions.numberOfHumans, gameOptions.humanPosition, gameOptions.botLevel)
-    var gameState = GameState(Board(emptyList(), gameOptions.boardSize), PlayerInfo.One, PlayerInfo.None)
+    val gameState = GameState(Board(emptyList(), gameOptions.boardSize), PlayerInfo.One, PlayerInfo.None, players)
+    gameloop(gameState)
+}
 
-    while (true) {
-        println(drawBoard(gameState.board))
-        if (gameState.winner != PlayerInfo.None) {
-            println("Player ${gameState.winner} wins!")
-            break
-        }
-
-        if (gameState.board.moves.count() == gameState.board.totalMovesAllowed()) {
-            println("No more moves available. Game is a tie")
-            break
-        }
-
-        players.getValue(gameState.currentPlayerInfo)
+tailrec fun gameloop(gameState: GameState): Result<GameState, GameError> {
+    println(drawBoard(gameState.board))
+    return if (gameState.winner != PlayerInfo.None) {
+        println("Player ${gameState.winner} wins!")
+        Ok(gameState)
+    } else if (gameState.board.moves.count() == gameState.board.totalMovesAllowed()) {
+        println("No more moves available. Game is a tie")
+        Ok(gameState)
+    } else {
+        val result = gameState.players.getValue(gameState.currentPlayerInfo)
             .getAction(gameState)
             .andThen { action -> action.act(gameState) }
-            .onSuccess { newGameState -> gameState = newGameState }
-            .onFailure { gameError ->
+
+        when {
+            result.getError() != null -> {
+                val gameError = result.getError()!!
                 println(gameError.getMessage())
                 println(actions)
+                gameloop(gameState)
             }
+            else -> {
+                val newGameState = result.get()!!
+                gameloop(newGameState)
+            }
+        }
     }
 }
 
