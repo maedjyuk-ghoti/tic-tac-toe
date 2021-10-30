@@ -1,3 +1,5 @@
+package com.maedjyukghoti.tictactoe.logic
+
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
@@ -31,7 +33,7 @@ data class Coordinates(val x: Int, val y: Int) {
         /**
          * Parse a string for coordinates
          *
-         * @param input A string that may contain usable info for tictactoe
+         * @param input A string that may contain usable info for com.maedjyukghoti.tictactoe.tictactoe
          * @return A [Result] containing the [Coordinates] entered by the [PlayerInfo] or a [Throwable]
          */
         fun parse(input: String): Result<Coordinates, InputError> {

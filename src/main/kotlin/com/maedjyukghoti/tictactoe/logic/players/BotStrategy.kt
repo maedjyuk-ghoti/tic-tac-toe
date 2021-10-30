@@ -1,14 +1,7 @@
-package players
+package com.maedjyukghoti.tictactoe.logic.players
 
-import Board
-import Coordinates
-import GameState
-import MoveError
-import MoveRequest
-import PlayerInfo
-import checkForWinner
 import com.github.michaelbull.result.*
-import makeMove
+import com.maedjyukghoti.tictactoe.logic.*
 
 sealed interface BotStrategy {
     fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, MoveError>

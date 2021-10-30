@@ -1,3 +1,5 @@
+package com.maedjyukghoti.tictactoe.logic
+
 sealed interface GameError {
     fun getMessage(): String
 }

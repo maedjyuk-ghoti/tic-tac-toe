@@ -1,5 +1,8 @@
+package com.maedjyukghoti.tictactoe
+
 import com.github.michaelbull.result.*
-import players.*
+import com.maedjyukghoti.tictactoe.logic.*
+import com.maedjyukghoti.tictactoe.logic.players.*
 import kotlin.math.log10
 
 val options = """

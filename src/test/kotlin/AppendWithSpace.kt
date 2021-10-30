@@ -1,3 +1,5 @@
+import com.maedjyukghoti.tictactoe.appendWithSpaceAfter
+import com.maedjyukghoti.tictactoe.appendWithSpaceBefore
 import org.junit.Test
 import kotlin.test.assertEquals
 

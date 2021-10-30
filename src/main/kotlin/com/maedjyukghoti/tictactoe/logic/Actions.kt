@@ -1,3 +1,5 @@
+package com.maedjyukghoti.tictactoe.logic
+
 import com.github.michaelbull.result.*
 
 sealed interface Action {

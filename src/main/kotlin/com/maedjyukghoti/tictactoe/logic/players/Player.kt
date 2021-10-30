@@ -1,11 +1,7 @@
-package players
+package com.maedjyukghoti.tictactoe.logic.players
 
-import Action
-import GameError
-import GameState
-import InputError
-import PlayerInfo
 import com.github.michaelbull.result.*
+import com.maedjyukghoti.tictactoe.logic.*
 
 sealed interface Player {
     fun getAction(gameState: GameState): Result<Action, GameError>
