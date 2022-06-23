@@ -1,6 +1,6 @@
 package com.maedjyukghoti.tictactoe.logic.players
 
-import Board
+import com.maedjyukghoti.tictactoe.logic.Board
 import com.maedjyukghoti.tictactoe.logic.Coordinates
 import com.maedjyukghoti.tictactoe.logic.MoveRequest
 import com.maedjyukghoti.tictactoe.logic.PlayerInfo

@@ -1,6 +1,4 @@
-import com.maedjyukghoti.tictactoe.logic.Coordinates
-import com.maedjyukghoti.tictactoe.logic.MoveRequest
-import com.maedjyukghoti.tictactoe.logic.PlayerInfo
+import com.maedjyukghoti.tictactoe.logic.*
 import org.junit.Test
 import kotlin.test.assertNotNull
 
