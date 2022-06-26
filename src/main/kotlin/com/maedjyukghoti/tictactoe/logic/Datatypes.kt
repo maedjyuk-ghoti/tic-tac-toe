@@ -183,15 +183,12 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
 data class GameState(val board: Board, val currentPlayerInfo: PlayerInfo, val winner: PlayerInfo)
 
 /** Check the [Board] for a winning player. Return [PlayerInfo.None] if no winner is found. **/
-fun checkForWinner(board: Board): PlayerInfo {
-    if (board.moves.count() < ((board.bounds * 2) - 1)) return PlayerInfo.None
-    // Group moves based on who played them
-    return board.moves.groupBy(MoveRequest::playerInfo, MoveRequest::coordinates)
+fun checkForWinner(board: Board): PlayerInfo =
+    board.moves.groupBy(MoveRequest::playerInfo, MoveRequest::coordinates)    // Group moves based on who played them
         .asSequence()
         .filter { (_, moveSet) -> moveSet.count() >= board.bounds }
         .firstOrNull { (_, moveSet) -> checkForConsecutiveCoordinates(moveSet, board.bounds) }
         ?.component1() ?: PlayerInfo.None
-}
 
 fun checkForConsecutiveCoordinates(moveSet: List<Coordinates>, bounds: Int): Boolean {
     // Not enough moves to win
