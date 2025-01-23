@@ -3,25 +3,38 @@ package com.maedjyukghoti.tictactoe.logic
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
+import com.maedjyukghoti.tictactoe.logic.players.Player
 
 data class GameOptions(val boardSize: Int, val numberOfHumans: Int, val humanPosition: Int, val botLevel: Int) {
     companion object {
-        fun parse(opts: Map<String, List<String>>): Result<GameOptions, Throwable> {
-            val gameOptions = GameOptions(
+        fun parse(opts: Map<String, List<String>>): Result<GameOptions, InvalidGameOptions> =
+            validateGameOptions(
                 boardSize = opts["--board-size"]?.firstOrNull()?.toInt() ?: 3,
                 numberOfHumans = opts["--number-of-humans"]?.firstOrNull()?.toInt() ?: 2,
                 humanPosition = opts["--human-position"]?.firstOrNull()?.toInt() ?: 0,
                 botLevel = opts["--bot-level"]?.firstOrNull()?.toInt() ?: 0,
             )
 
-            if (gameOptions.boardSize < 1) return Err(Throwable("Sorry. Only positive board sizes are supported at the moment."))
-            if (gameOptions.numberOfHumans > 2) return Err(Throwable("Sorry. I only supports 2 players at the moment."))
-            if (gameOptions.numberOfHumans + gameOptions.humanPosition < 2) return Err(Throwable("Must set player position if less than 2 humans will be playing."))
+        fun validateGameOptions(boardSize: Int, numberOfHumans: Int, humanPosition: Int, botLevel: Int): Result<GameOptions, InvalidGameOptions> {
+            val isBoardSizeInvalid = boardSize < 1
+            val isNumberOfHumansInvalid = numberOfHumans > 2
+            val isHumanPositionInvalid = numberOfHumans + humanPosition < 2
+            val isBotLevelInvalid = botLevel in 1..3
 
-            return Ok(gameOptions)
+            return if (isBoardSizeInvalid || isNumberOfHumansInvalid || isHumanPositionInvalid || isBotLevelInvalid)
+                Err(InvalidGameOptions(isBoardSizeInvalid, isNumberOfHumansInvalid, isHumanPositionInvalid, isBotLevelInvalid))
+            else
+                Ok(GameOptions(boardSize, numberOfHumans, humanPosition, botLevel))
         }
     }
 }
+
+data class InvalidGameOptions(
+    val isBoardSizeInvalid: Boolean,
+    val isNumberOfHumansInvalid: Boolean,
+    val isHumanPositionInvalid: Boolean,
+    val isBotLevelInvalid: Boolean,
+)
 
 /**
  * A pair of X, Y coordinates.
@@ -50,35 +63,33 @@ data class Coordinates(val x: Int, val y: Int) {
 
 /**
  * Players available for a game.
- *
- * @param symbol A symbol to represent the player on the grid
  */
-enum class PlayerInfo(val symbol: Char) {
-    None(' '),
-    One('X'),
-    Two('O');
+enum class PlayerInfo() {
+    None,
+    One,
+    Two;
 
     companion object {
         fun backUp(playerInfo: PlayerInfo, times: Int): PlayerInfo {
-            val index = values().indexOf(playerInfo)
-            val previousIndex = index - (times % values().lastIndex)
-            val adjustedIndex = if (previousIndex < 1) values().lastIndex + previousIndex else previousIndex
-            return values()[adjustedIndex]
+            val index = entries.indexOf(playerInfo)
+            val previousIndex = index - (times % entries.toTypedArray().lastIndex)
+            val adjustedIndex = if (previousIndex < 1) entries.toTypedArray().lastIndex + previousIndex else previousIndex
+            return entries[adjustedIndex]
         }
 
         fun previousPlayer(playerInfo: PlayerInfo): PlayerInfo {
-            val index = values().indexOf(playerInfo)
-            val previousIndex = if (index - 1 < 1) values().lastIndex else index - 1
-            return values()[previousIndex]
+            val index = entries.indexOf(playerInfo)
+            val previousIndex = if (index - 1 < 1) entries.toTypedArray().lastIndex else index - 1
+            return entries[previousIndex]
         }
 
         /**
          * Given a player, return the next player
          */
         fun nextPlayer(playerInfo: PlayerInfo): PlayerInfo {
-            val index = values().indexOf(playerInfo)
-            val nextIndex = if (index + 1 > values().lastIndex) 1 else index + 1
-            return values()[nextIndex]
+            val index = entries.indexOf(playerInfo)
+            val nextIndex = if (index + 1 > entries.toTypedArray().lastIndex) 1 else index + 1
+            return entries[nextIndex]
         }
     }
 }
@@ -180,7 +191,10 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
  * @param currentPlayerInfo The player whose turn it is to play
  * @param winner The player who has won the game, [PlayerInfo.None] indicates there is no winner
  */
-data class GameState(val board: Board, val currentPlayerInfo: PlayerInfo, val winner: PlayerInfo)
+data class GameState(val board: Board, val players: Map<PlayerInfo, Player>, val currentPlayerInfo: PlayerInfo, val winner: PlayerInfo, val error: GameError?) {
+    fun getCurrentPlayer(): Player =
+        players.getValue(currentPlayerInfo)
+}
 
 /** Check the [Board] for a winning player. Return [PlayerInfo.None] if no winner is found. **/
 fun checkForWinner(board: Board): PlayerInfo =

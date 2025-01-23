@@ -1,66 +1,34 @@
 package com.maedjyukghoti.tictactoe.logic
 
-sealed interface GameError {
-    fun getMessage(): String
-}
+sealed interface GameError
+
+data class GameOptionsError(
+    val boardSize: Pair<Int, Boolean>,
+    val numberOfHumans: Pair<Int, Boolean>,
+    val humanPosition: Pair<Int, Boolean>,
+    val botLevel: Pair<Int, Boolean>,
+) : GameError
 
 sealed class InputError : GameError {
-    object MissingInput : InputError() {
-        override fun getMessage(): String {
-            return "No input received"
-        }
-    }
+    data object MissingInput : InputError()
 
-    class InvalidAction(val input: String) : InputError() {
-        override fun getMessage(): String {
-            return "Invalid input"
-        }
-    }
+    data class InvalidAction(val input: String) : InputError()
 
-    class InvalidCoordinates(val input: String) : InputError() {
-        override fun getMessage(): String {
-            return "Invalid Coordinates"
-        }
-    }
+    data class InvalidCoordinates(val input: String) : InputError()
 }
 
 sealed class MoveError : GameError {
-    object NoAvailableMoves : MoveError() {
-        override fun getMessage(): String {
-            return "No available moves"
-        }
-    }
+    data object NoAvailableMoves : MoveError()
 
-    object NoWinningMove : MoveError() {
-        override fun getMessage(): String {
-            return "No winning move"
-        }
-    }
+    data object NoWinningMove : MoveError()
 
-    class InvalidCoordinates(val coordinates: Coordinates) : MoveError() {
-        override fun getMessage(): String {
-            return "Invalid coordinates"
-        }
-    }
+    data class InvalidCoordinates(val coordinates: Coordinates) : MoveError()
 
-    object CoordinateTaken : MoveError() {
-        override fun getMessage(): String {
-            return "That square has already been played"
-        }
-
-    }
+    data object CoordinateTaken : MoveError()
 }
 
 sealed class UndoError: GameError {
-    object NoMovesToUndo : UndoError() {
-        override fun getMessage(): String {
-            return "No moves to undo"
-        }
-    }
+    data object NoMovesToUndo : UndoError()
 
-    object RequestTooLarge : UndoError() {
-        override fun getMessage(): String {
-            return "Requested more moves than are present"
-        }
-    }
+    data object RequestTooLarge : UndoError()
 }
