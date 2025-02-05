@@ -1,4 +1,6 @@
-package com.maedjyukghoti.tictactoe.logic
+package com.maedjyukghoti.tictactoe
+
+import com.maedjyukghoti.tictactoe.logic.Coordinates
 
 sealed interface GameError
 

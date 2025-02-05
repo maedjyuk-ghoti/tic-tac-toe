@@ -7,7 +7,7 @@ internal class ValidateTest {
     fun `move on empty board is valid`() {
         val board = getEmptyBoard(3)
         val request = MoveRequest(Coordinates(0, 0), PlayerInfo.One)
-        val result = validate(request, board)
+        val result = board.validate(request)
         assertNotNull(result.component1())
     }
 
@@ -15,7 +15,7 @@ internal class ValidateTest {
     fun `move out of bounds is invalid`() {
         val board = getEmptyBoard(3)
         val request = MoveRequest(Coordinates(4, 4), PlayerInfo.One)
-        val result = validate(request, board)
+        val result = board.validate(request)
         assertNotNull(result.component2())
     }
 
@@ -29,7 +29,7 @@ internal class ValidateTest {
             ), 3
         )
         val request = MoveRequest(Coordinates(1, 1), PlayerInfo.One)
-        val result = validate(request, board)
+        val result = board.validate(request)
         assertNotNull(result.component1())
     }
 
@@ -37,7 +37,7 @@ internal class ValidateTest {
     fun `move on an occupied square is invalid`() {
         val board = Board(listOf(MoveRequest(Coordinates(1, 1), PlayerInfo.Two)), 3)
         val request = MoveRequest(Coordinates(1, 1), PlayerInfo.One)
-        val result = validate(request, board)
+        val result = board.validate(request)
         assertNotNull(result.component2())
     }
 }
