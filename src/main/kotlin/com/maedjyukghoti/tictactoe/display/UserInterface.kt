@@ -1,81 +1,108 @@
 package com.maedjyukghoti.tictactoe.display
 
 import com.github.michaelbull.result.*
+import com.maedjyukghoti.tictactoe.AppState
+import com.maedjyukghoti.tictactoe.UserIntent
 import com.maedjyukghoti.tictactoe.logic.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlin.math.log10
 
-sealed interface Screen {
-    data object Welcome : Screen
+sealed interface UserInterface {
+    /**
+     * Observable to monitor user interactions on the screen
+     */
+    val userIntent: Flow<UserIntent>
 
-    data class Options(
-        val gameOptions: GameOptions?,
-        val invalidGameOptions: InvalidGameOptions?
-    ) : Screen
+    /**
+     * Update the display to show the current app state
+     */
+    fun render(state: AppState)
 
-    data class Game(
-        val board: Board,
-        val winner: PlayerInfo,
-        val isTied: Boolean,
-        val error: GameError?
-    ) : Screen
-}
+    /**
+     * A programmatic way of interacting with this UI
+     */
+    fun interact(intent: UserIntent)
 
-sealed interface Display {
-    val actions: Flow<Result<Action, InputError>>
-    fun display(screen: Screen)
+    /**
+     * Cleans up any background work or the UI
+     */
+    suspend fun destroy()
 
-    /** A way for bots to play the game */
-    fun interact(action: Action)
+    /**
+     * Represents a command line interface
+     */
+    class CLI(scope: CoroutineScope) : UserInterface {
+        private val _userIntent: MutableSharedFlow<UserIntent> = MutableSharedFlow()
+        override val userIntent: Flow<UserIntent> = _userIntent.asSharedFlow()
 
-    data class CLI(
-        private val scope: CoroutineScope,
-        private val onAction: (String?) -> Result<Action, InputError>,
-    ) : Display {
-        private val _actions: MutableSharedFlow<Result<Action, InputError>> = MutableSharedFlow()
-        override val actions: Flow<Result<Action, InputError>> = _actions.asSharedFlow()
-
-        override fun display(screen: Screen) {
-            when (screen) {
-                is Screen.Welcome -> handleWelcome(screen)
-                is Screen.Options -> handleOptions(screen)
-                is Screen.Game -> handleGame(screen)
+        /**
+         * Start a job to listen to the CLI for user input
+         */
+        private val job = scope.launch {
+            while (isActive) {
+                val input = readlnOrNull()
+                if (input != null) {
+                    _userIntent.emit(parseInput(input))
+                } else {
+                    // handle EOF
+                }
             }
         }
 
-        fun handleWelcome(welcome: Screen.Welcome) {
-            println("Welcome to Tic-Tac-Toe!")
+        override fun render(state: AppState) {
+            when (state) {
+                AppState.Exit -> TODO()
+                AppState.FatalError -> TODO()
+                is AppState.Game -> handleGame(state)
+            }
         }
 
-        fun handleOptions(options: Screen.Options) {
-            println("You are now in options: $options")
-        }
-
-        fun handleGame(game: Screen.Game) {
-            println(drawBoard(game.board))
+        private fun handleGame(state: AppState.Game) {
+            println(drawBoard(state.board))
             println(actionsText)
 
-            if (game.winner != PlayerInfo.None) { println("Player ${game.winner} wins!") }
-            if (game.isTied) { println("No more moves available. Game is a tie") }
-            if (game.error != null) { println(getErrorString(game.error)) }
-
-            scope.launch {
-                _actions.emit(onAction(readlnOrNull()))
+            if (state.winner != PlayerInfo.None) {
+                println("Player ${state.winner} wins!")
+            }
+            if (state.isTied) {
+                println("No more moves available. Game is a tie")
+            }
+            if (state.error != null) {
+                println(getErrorString(state.error))
             }
         }
 
-        override fun interact(action: Action) {
-            val actionString = when (action) {
-                is Action.Move -> "m ${action.coordinates.x} ${action.coordinates.y}"
-                is Action.Undo -> "u ${action.times}"
-            }
-            println(actionString)
-
-            scope.launch {
-                _actions.emit(Ok(action))
-            }
+        override fun interact(intent: UserIntent) {
+            TODO("Not yet implemented")
         }
+
+        override suspend fun destroy() {
+            println("") // emit a character to trigger job to read line and recheck isActive
+            job.cancel()
+        }
+
+        /**
+         * Parse user input into Intent
+         */
+        private fun parseInput(input: String): UserIntent =
+            when (input[0]) {
+                'm' -> Coordinates.parse(input.substring(1).trim())
+                    .fold(
+                        success = { UserIntent.Move(it) },
+                        failure = { UserIntent.Error(it) }
+                    )
+
+                'u' -> runCatching { input.substring(1).trim().toInt() }
+                    .fold(
+                        success = { UserIntent.Undo(it) },
+                        failure = { UserIntent.Undo(1) }
+                    )
+
+                'q' -> UserIntent.Quit
+
+                else -> UserIntent.Error(InputError.InvalidAction(input))
+            }
 
         companion object {
             val optionsText = """
@@ -92,8 +119,9 @@ sealed interface Display {
 
             val actionsText = """
                 | Actions:
-                |   Move: m [x y]
-                |   Undo: u
+                |   Move: m <x y>
+                |   Undo: u [#]
+                |   Quit: q
             """.trimMargin()
 
             /**
@@ -201,19 +229,4 @@ sealed interface Display {
                 ).joinToString(separator = ", ", prefix = "Invalid options: ")
         }
     }
-}
-
-fun main() = runBlocking {
-    val ioScope = CoroutineScope(Dispatchers.IO)
-    val display = Display.CLI(ioScope) { _ -> Ok(Action.Move(Coordinates(0, 0))) }
-
-    display.display(Screen.Welcome)
-
-    display.actions.onEach { _ ->
-        display.display(Screen.Options(null, null))
-    }.launchIn(ioScope)
-
-    println("Waiting for input")
-    delay(5000)
-    println("End")
 }

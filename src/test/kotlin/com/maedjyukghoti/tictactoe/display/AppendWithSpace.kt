@@ -1,7 +1,7 @@
 package com.maedjyukghoti.tictactoe.display
 
-import com.maedjyukghoti.tictactoe.display.Display.CLI.Companion.appendWithSpaceAfter
-import com.maedjyukghoti.tictactoe.display.Display.CLI.Companion.appendWithSpaceBefore
+import com.maedjyukghoti.tictactoe.display.UserInterface.CLI.Companion.appendWithSpaceAfter
+import com.maedjyukghoti.tictactoe.display.UserInterface.CLI.Companion.appendWithSpaceBefore
 import org.junit.Test
 import kotlin.test.assertEquals
 
