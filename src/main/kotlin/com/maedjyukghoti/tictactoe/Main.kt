@@ -27,27 +27,31 @@ fun main(args: Array<String>) = runBlocking {
     val coroutineScope = CoroutineScope(Dispatchers.IO)
     val ui: UserInterface = UserInterface.CLI(coroutineScope)
 
+    // Keep forwarding user intents to the game state
     launch {
-        state.zip(ui.userIntent, ::Pair)
+        state.combine(ui.userIntent, ::Pair)
             .takeWhile { (appState, _) -> appState != AppState.Exit }
             .map { (_, userIntent) -> userIntent }
+            .distinctUntilChanged()
             .collect { userIntent -> state.value = state.value.handleAction(userIntent) }
     }
 
+    // Keep updating app state
     launch {
         state.takeWhile { appState -> appState != AppState.Exit }
             .filter { appState -> appState == AppState.FatalError }
             .collect { _ ->
-                delay(5.seconds)
                 state.value = AppState.Exit
             }
     }
 
+    // Keep screen in sync with app state
     launch {
         state.takeWhile { appState -> appState != AppState.Exit }
             .collect { appState -> ui.render(appState) }
     }
 
+    // Make sure to cancel anything in the scopes we've created
     launch {
         state.filter { appState -> appState == AppState.Exit }
             .take(1)
