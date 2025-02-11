@@ -1,4 +1,5 @@
-import com.maedjyukghoti.tictactoe.logic.Board
+package com.maedjyukghoti.tictactoe.logic
+
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -18,6 +19,5 @@ internal class BoardTest {
 
     @Test
     fun `board generates remaining coordinates`() {
-
     }
 }

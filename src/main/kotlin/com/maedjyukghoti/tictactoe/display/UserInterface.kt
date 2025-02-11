@@ -1,10 +1,26 @@
 package com.maedjyukghoti.tictactoe.display
 
-import com.github.michaelbull.result.*
-import com.maedjyukghoti.tictactoe.*
-import com.maedjyukghoti.tictactoe.logic.*
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
+import com.github.michaelbull.result.Err
+import com.github.michaelbull.result.Ok
+import com.github.michaelbull.result.Result
+import com.github.michaelbull.result.fold
+import com.github.michaelbull.result.runCatching
+import com.maedjyukghoti.tictactoe.AppState
+import com.maedjyukghoti.tictactoe.GameError
+import com.maedjyukghoti.tictactoe.GameOptionsError
+import com.maedjyukghoti.tictactoe.InputError
+import com.maedjyukghoti.tictactoe.MoveError
+import com.maedjyukghoti.tictactoe.UndoError
+import com.maedjyukghoti.tictactoe.UserIntent
+import com.maedjyukghoti.tictactoe.logic.Board
+import com.maedjyukghoti.tictactoe.logic.Coordinates
+import com.maedjyukghoti.tictactoe.logic.PlayerInfo
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlin.math.log10
 
 sealed interface UserInterface {
@@ -17,11 +33,6 @@ sealed interface UserInterface {
      * Update the display to show the current app state
      */
     fun render(state: AppState)
-
-    /**
-     * A programmatic way of interacting with this UI
-     */
-    fun interact(intent: UserIntent)
 
     /**
      * Cleans up any background work or the UI
@@ -38,16 +49,17 @@ sealed interface UserInterface {
         /**
          * Start a job to listen to the CLI for user input
          */
-        private val job = scope.launch {
-            while (isActive) {
-                val input = readlnOrNull()
-                if (input != null) {
-                    _userIntent.emit(parseInput(input))
-                } else {
-                    // handle EOF
+        private val job =
+            scope.launch {
+                while (isActive) {
+                    val input = readlnOrNull()
+                    if (input != null) {
+                        _userIntent.emit(parseInput(input))
+                    } else {
+                        // handle EOF
+                    }
                 }
             }
-        }
 
         override fun render(state: AppState) {
             when (state) {
@@ -72,10 +84,6 @@ sealed interface UserInterface {
             }
         }
 
-        override fun interact(intent: UserIntent) {
-            TODO("Not yet implemented")
-        }
-
         override suspend fun destroy() {
             println("") // emit a character to trigger job to read line and recheck isActive
             job.cancel()
@@ -86,17 +94,19 @@ sealed interface UserInterface {
          */
         private fun parseInput(input: String): UserIntent =
             when (input[0]) {
-                'm' -> parseCoordinates(input.substring(1).trim())
-                    .fold(
-                        success = { UserIntent.Move(it) },
-                        failure = { UserIntent.Error(it) }
-                    )
+                'm' ->
+                    parseCoordinates(input.substring(1).trim())
+                        .fold(
+                            success = { UserIntent.Move(it) },
+                            failure = { UserIntent.Error(it) },
+                        )
 
-                'u' -> runCatching { input.substring(1).trim().toInt() }
-                    .fold(
-                        success = { UserIntent.Undo(it) },
-                        failure = { UserIntent.Undo(1) }
-                    )
+                'u' ->
+                    runCatching { input.substring(1).trim().toInt() }
+                        .fold(
+                            success = { UserIntent.Undo(it) },
+                            failure = { UserIntent.Undo(1) },
+                        )
 
                 'q' -> UserIntent.Quit
 
@@ -104,7 +114,8 @@ sealed interface UserInterface {
             }
 
         companion object {
-            val optionsText = """
+            val optionsText =
+                """
                 | Options:
                 |   --board-size 3
                 |       Board size for NxN board.
@@ -114,14 +125,15 @@ sealed interface UserInterface {
                 |       If only 1 human player, do you want to go first or second?
                 |   --bot-level 3
                 |       Difficulty of the AI. Available levels 0-3
-            """.trimMargin()
+                """.trimMargin()
 
-            val actionsText = """
+            val actionsText =
+                """
                 | Actions:
                 |   Move: m <x y>
                 |   Undo: u [#]
                 |   Quit: q
-            """.trimMargin()
+                """.trimMargin()
 
             /**
              * Transform the board into a string for display
@@ -173,32 +185,47 @@ sealed interface UserInterface {
                     PlayerInfo.Two -> 'O'
                 }
 
-            fun appendWithSpaceBefore(spaceCount: Int, number: Int): String {
+            fun appendWithSpaceBefore(
+                spaceCount: Int,
+                number: Int,
+            ): String {
                 val numberOfSpaces = spaceCount - getMagnitude(number)
 
-                return if (numberOfSpaces < 0) ""
-                else StringBuilder()
-                    .appendSpaces(numberOfSpaces) // spaces before number
-                    .append(number)
-                    .toString()
+                return if (numberOfSpaces < 0) {
+                    ""
+                } else {
+                    StringBuilder()
+                        .appendSpaces(numberOfSpaces) // spaces before number
+                        .append(number)
+                        .toString()
+                }
             }
 
-            fun appendWithSpaceAfter(spaceCount: Int, number: Int): String {
+            fun appendWithSpaceAfter(
+                spaceCount: Int,
+                number: Int,
+            ): String {
                 val numberOfSpaces = spaceCount - getMagnitude(number)
 
-                return if (numberOfSpaces < 0) ""
-                else StringBuilder()
-                    .append(number)
-                    .appendSpaces(numberOfSpaces) // spaces after number
-                    .toString()
+                return if (numberOfSpaces < 0) {
+                    ""
+                } else {
+                    StringBuilder()
+                        .append(number)
+                        .appendSpaces(numberOfSpaces) // spaces after number
+                        .toString()
+                }
             }
 
             /**
              * log10(0) is undefined, make a special case for it
              */
             private fun getMagnitude(number: Int): Int =
-                if (number == 0) 1
-                else log10(number.toDouble()).toInt() + 1
+                if (number == 0) {
+                    1
+                } else {
+                    log10(number.toDouble()).toInt() + 1
+                }
 
             private fun StringBuilder.appendSpaces(numberOfSpaces: Int): StringBuilder {
                 (0 until numberOfSpaces).forEach { _ -> append(' ') }
@@ -224,7 +251,7 @@ sealed interface UserInterface {
                     if (gameOptionsError.boardSize.second) "board size (${gameOptionsError.boardSize.first})" else null,
                     if (gameOptionsError.numberOfHumans.second) "number of humans (${gameOptionsError.numberOfHumans.first})" else null,
                     if (gameOptionsError.humanPosition.second) "human position (${gameOptionsError.humanPosition.first})" else null,
-                    if (gameOptionsError.botLevel.second) "bot level (${gameOptionsError.botLevel.first})" else null
+                    if (gameOptionsError.botLevel.second) "bot level (${gameOptionsError.botLevel.first})" else null,
                 ).joinToString(separator = ", ", prefix = "Invalid options: ")
 
             /**
