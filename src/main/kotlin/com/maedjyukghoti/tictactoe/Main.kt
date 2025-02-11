@@ -3,6 +3,7 @@ package com.maedjyukghoti.tictactoe
 import com.github.michaelbull.result.*
 import com.maedjyukghoti.tictactoe.display.*
 import com.maedjyukghoti.tictactoe.logic.*
+import com.maedjyukghoti.tictactoe.logic.players.Player
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
@@ -26,7 +27,7 @@ fun main(args: Array<String>) = runBlocking {
     val ui: UserInterface = UserInterface.CLI(coroutineScope)
 
     // Keep forwarding user intents to the game state
-    launch {
+    val userIntentToGameStateJob = launch {
         state.combine(ui.userIntent, ::Pair)
             .takeWhile { (appState, _) -> appState != AppState.Exit }
             .map { (_, userIntent) -> userIntent }
@@ -34,8 +35,20 @@ fun main(args: Array<String>) = runBlocking {
             .collect { userIntent -> state.value = state.value.handleAction(userIntent) }
     }
 
+    val botIntentToGameStateJob = launch {
+        state.takeWhile { appState -> appState != AppState.Exit }
+            .collect { appState ->
+                println(appState)
+                ((appState as? AppState.Game)
+                    ?.getCurrentPlayer() as? Player.Bot)
+                    ?.getAction(appState)
+                    ?.also { intent -> println(intent) }
+                    ?.let { botIntent -> state.value = state.value.handleAction(botIntent) }
+            }
+    }
+
     // Keep updating app state
-    launch {
+    val fatalErrorWatchJob = launch {
         state.takeWhile { appState -> appState != AppState.Exit }
             .filter { appState -> appState == AppState.FatalError }
             .collect { _ ->
@@ -44,13 +57,25 @@ fun main(args: Array<String>) = runBlocking {
     }
 
     // Keep screen in sync with app state
-    launch {
+    val renderJob = launch {
         state.takeWhile { appState -> appState != AppState.Exit }
             .collect { appState -> ui.render(appState) }
     }
 
+    val winnerJob = launch {
+        state.takeWhile { appState -> appState != AppState.Exit }
+            .collect { appState ->
+                (appState as? AppState.Game)?.winner
+                    ?.let { winner ->
+                        if (winner != PlayerInfo.None) {
+                            state.value = AppState.Exit
+                        }
+                    }
+            }
+    }
+
     // Make sure to cancel anything in the scopes we've created
-    launch {
+    val exitWatchJob = launch {
         state.filter { appState -> appState == AppState.Exit }
             .take(1)
             .collect {
@@ -59,5 +84,10 @@ fun main(args: Array<String>) = runBlocking {
             }
     }
 
-    Unit // main must return Unit to compile correctly as a main function
+    userIntentToGameStateJob.join()
+    botIntentToGameStateJob.join()
+    fatalErrorWatchJob.join()
+    renderJob.join()
+    winnerJob.join()
+    exitWatchJob.join()
 }

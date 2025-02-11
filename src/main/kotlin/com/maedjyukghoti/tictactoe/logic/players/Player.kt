@@ -8,7 +8,7 @@ import com.maedjyukghoti.tictactoe.logic.*
 sealed interface Player {
     data object Human: Player
 
-    class Bot(
+    data class Bot(
         private val playerInfo: PlayerInfo,
         private val botStrategy: BotStrategy
     ) : Player {
