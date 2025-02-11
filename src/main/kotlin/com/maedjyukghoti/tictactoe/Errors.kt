@@ -29,7 +29,7 @@ sealed class MoveError : GameError {
     data object CoordinateTaken : MoveError()
 }
 
-sealed class UndoError: GameError {
+sealed class UndoError : GameError {
     data object NoMovesToUndo : UndoError()
 
     data object RequestTooLarge : UndoError()

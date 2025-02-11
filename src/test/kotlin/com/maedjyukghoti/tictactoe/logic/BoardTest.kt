@@ -19,6 +19,5 @@ internal class BoardTest {
 
     @Test
     fun `board generates remaining coordinates`() {
-
     }
 }

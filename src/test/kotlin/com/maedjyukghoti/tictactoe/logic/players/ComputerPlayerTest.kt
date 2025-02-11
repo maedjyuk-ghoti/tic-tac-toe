@@ -18,11 +18,12 @@ internal class ComputerPlayerTest {
 
     @Test
     fun `no winning move`() {
-        val moves = listOf(
-            MoveRequest(Coordinates(0,0), PlayerInfo.One),
-            MoveRequest(Coordinates(1,2), PlayerInfo.One),
-            MoveRequest(Coordinates(2,1), PlayerInfo.One)
-        )
+        val moves =
+            listOf(
+                MoveRequest(Coordinates(0, 0), PlayerInfo.One),
+                MoveRequest(Coordinates(1, 2), PlayerInfo.One),
+                MoveRequest(Coordinates(2, 1), PlayerInfo.One),
+            )
         val board = Board(moves, 3)
         val result = getWinningCoordinates(board, PlayerInfo.One)
         assertNotNull(result.component2())
@@ -30,10 +31,11 @@ internal class ComputerPlayerTest {
 
     @Test
     fun `winning move row`() {
-        val moves = listOf(
-            MoveRequest(Coordinates(0,0), PlayerInfo.One),
-            MoveRequest(Coordinates(1,0), PlayerInfo.One)
-        )
+        val moves =
+            listOf(
+                MoveRequest(Coordinates(0, 0), PlayerInfo.One),
+                MoveRequest(Coordinates(1, 0), PlayerInfo.One),
+            )
         val board = Board(moves, 3)
         val result = getWinningCoordinates(board, PlayerInfo.One)
         assertNotNull(result.component1())
@@ -42,10 +44,11 @@ internal class ComputerPlayerTest {
 
     @Test
     fun `winning move column`() {
-        val moves = listOf(
-            MoveRequest(Coordinates(0, 0), PlayerInfo.One),
-            MoveRequest(Coordinates(0, 2), PlayerInfo.One)
-        )
+        val moves =
+            listOf(
+                MoveRequest(Coordinates(0, 0), PlayerInfo.One),
+                MoveRequest(Coordinates(0, 2), PlayerInfo.One),
+            )
         val board = Board(moves, 3)
         val result = getWinningCoordinates(board, PlayerInfo.One)
         assertNotNull(result.component1())
@@ -54,10 +57,11 @@ internal class ComputerPlayerTest {
 
     @Test
     fun `winning move diagonal`() {
-        val moves = listOf(
-            MoveRequest(Coordinates(0,0), PlayerInfo.One),
-            MoveRequest(Coordinates(1,1), PlayerInfo.One)
-        )
+        val moves =
+            listOf(
+                MoveRequest(Coordinates(0, 0), PlayerInfo.One),
+                MoveRequest(Coordinates(1, 1), PlayerInfo.One),
+            )
         val board = Board(moves, 3)
         val result = getWinningCoordinates(board, PlayerInfo.One)
         assertNotNull(result.component1())
@@ -66,10 +70,11 @@ internal class ComputerPlayerTest {
 
     @Test
     fun `winning move anti-diagonal`() {
-        val moves = listOf(
-            MoveRequest(Coordinates(0,2), PlayerInfo.One),
-            MoveRequest(Coordinates(2,0), PlayerInfo.One)
-        )
+        val moves =
+            listOf(
+                MoveRequest(Coordinates(0, 2), PlayerInfo.One),
+                MoveRequest(Coordinates(2, 0), PlayerInfo.One),
+            )
         val board = Board(moves, 3)
         val result = getWinningCoordinates(board, PlayerInfo.One)
         assertNotNull(result.component1())

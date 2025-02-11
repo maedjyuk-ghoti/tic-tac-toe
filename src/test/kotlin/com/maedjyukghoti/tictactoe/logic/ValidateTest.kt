@@ -23,13 +23,15 @@ internal class ValidateTest {
 
     @Test
     fun `move on an open square is valid`() {
-        val board = Board(
-            listOf(
-                MoveRequest(Coordinates(0, 1), PlayerInfo.Two),
-                MoveRequest(Coordinates(0, 2), PlayerInfo.One),
-                MoveRequest(Coordinates(1, 2), PlayerInfo.Two)
-            ), 3
-        )
+        val board =
+            Board(
+                listOf(
+                    MoveRequest(Coordinates(0, 1), PlayerInfo.Two),
+                    MoveRequest(Coordinates(0, 2), PlayerInfo.One),
+                    MoveRequest(Coordinates(1, 2), PlayerInfo.Two),
+                ),
+                3,
+            )
         val request = MoveRequest(Coordinates(1, 1), PlayerInfo.One)
         val result = board.validate(request)
         assertNotNull(result.component1())

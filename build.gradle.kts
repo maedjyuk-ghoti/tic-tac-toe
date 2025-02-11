@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 plugins {
     kotlin("jvm") version "2.1.0"
     application
+    id("org.jlleitschuh.gradle.ktlint") version "12.1.2"
 }
 
 group = "me.sedwi"
