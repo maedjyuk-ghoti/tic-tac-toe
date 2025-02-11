@@ -1,11 +1,12 @@
 package com.maedjyukghoti.tictactoe.logic.players
 
 import com.github.michaelbull.result.*
+import com.maedjyukghoti.tictactoe.AppState.Game
 import com.maedjyukghoti.tictactoe.MoveError
 import com.maedjyukghoti.tictactoe.logic.*
 
 sealed interface BotStrategy {
-    fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, MoveError>
+    fun getCoordinates(gameState: Game, botPlayer: PlayerInfo): Result<Coordinates, MoveError>
 
     companion object {
         fun getBotAtLevel(botLevel: Int): BotStrategy =
@@ -18,12 +19,12 @@ sealed interface BotStrategy {
     }
 
     data object Random : BotStrategy {
-        override fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, MoveError> =
+        override fun getCoordinates(gameState: Game, botPlayer: PlayerInfo): Result<Coordinates, MoveError> =
             getRandomCoordinates(gameState.board)
     }
 
     data object OneLayer : BotStrategy {
-        override fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, MoveError> =
+        override fun getCoordinates(gameState: Game, botPlayer: PlayerInfo): Result<Coordinates, MoveError> =
             getWinningCoordinates(gameState.board, botPlayer)
                 .orElse { getRandomCoordinates(gameState.board) }
     }
@@ -36,7 +37,7 @@ sealed interface BotStrategy {
      *  3) else no blocking move
      */
     data object TwoLayer : BotStrategy {
-        override fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, MoveError> =
+        override fun getCoordinates(gameState: Game, botPlayer: PlayerInfo): Result<Coordinates, MoveError> =
             getWinningCoordinates(gameState.board, botPlayer)
                 .orElse { getBlockingCoordinates(gameState.board, PlayerInfo.nextPlayer(botPlayer)) }
                 .orElse { getRandomCoordinates(gameState.board) }
@@ -44,7 +45,7 @@ sealed interface BotStrategy {
 
     data object MiniMax : BotStrategy {
         private val memo: MutableMap<Set<MoveRequest>, Choice> = mutableMapOf()
-        override fun getCoordinates(gameState: GameState, botPlayer: PlayerInfo): Result<Coordinates, MoveError> =
+        override fun getCoordinates(gameState: Game, botPlayer: PlayerInfo): Result<Coordinates, MoveError> =
             Ok(
                 minimax(
                     board = gameState.board,

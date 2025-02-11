@@ -4,10 +4,8 @@ import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import com.maedjyukghoti.tictactoe.GameError
-import com.maedjyukghoti.tictactoe.InputError
 import com.maedjyukghoti.tictactoe.MoveError
 import com.maedjyukghoti.tictactoe.UndoError
-import com.maedjyukghoti.tictactoe.logic.players.Player
 
 data class GameOptions(val boardSize: Int, val numberOfHumans: Int, val humanPosition: Int, val botLevel: Int) {
     companion object {
@@ -45,25 +43,7 @@ data class InvalidGameOptions(
  *
  * Convenience class to keep in line with a Data/Domain Oriented approach.
  */
-data class Coordinates(val x: Int, val y: Int) {
-    companion object {
-        /**
-         * Parse a string for coordinates
-         *
-         * @param input A string that may contain usable info for com.maedjyukghoti.tictactoe.tictactoe
-         * @return A [Result] containing the [Coordinates] entered by the [PlayerInfo] or a [Throwable]
-         */
-        fun parse(input: String): Result<Coordinates, InputError> {
-            val split = input.split(" ")
-            if (split.size != 2) return Err(InputError.InvalidCoordinates(input))
-
-            val x = split[0].toIntOrNull() ?: return Err(InputError.InvalidCoordinates(input))
-            val y = split[1].toIntOrNull() ?: return Err(InputError.InvalidCoordinates(input))
-
-            return Ok(Coordinates(x, y))
-        }
-    }
-}
+data class Coordinates(val x: Int, val y: Int)
 
 /**
  * Players available for a game.
@@ -79,12 +59,6 @@ enum class PlayerInfo {
             val previousIndex = index - (times % entries.toTypedArray().lastIndex)
             val adjustedIndex = if (previousIndex < 1) entries.toTypedArray().lastIndex + previousIndex else previousIndex
             return entries[adjustedIndex]
-        }
-
-        fun previousPlayer(playerInfo: PlayerInfo): PlayerInfo {
-            val index = entries.indexOf(playerInfo)
-            val previousIndex = if (index - 1 < 1) entries.toTypedArray().lastIndex else index - 1
-            return entries[previousIndex]
         }
 
         /**
@@ -203,18 +177,6 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
     }
 }
 
-/**
- * Represents the entire state of the game
- *
- * @param board The current game board
- * @param currentPlayerInfo The player whose turn it is to play
- * @param winner The player who has won the game, [PlayerInfo.None] indicates there is no winner
- */
-data class GameState(val board: Board, val players: Map<PlayerInfo, Player>, val currentPlayerInfo: PlayerInfo, val winner: PlayerInfo, val error: GameError?) {
-    fun getCurrentPlayer(): Player =
-        players.getValue(currentPlayerInfo)
-}
-
 /** Check the [Board] for a winning player. Return [PlayerInfo.None] if no winner is found. **/
 fun checkForWinner(board: Board): PlayerInfo =
     board.moves.groupBy(MoveRequest::playerInfo, MoveRequest::coordinates) // Group moves based on who played them
@@ -223,7 +185,7 @@ fun checkForWinner(board: Board): PlayerInfo =
         .firstOrNull { (_, moveSet) -> checkForConsecutiveCoordinates(moveSet, board.bounds) }
         ?.component1() ?: PlayerInfo.None
 
-fun checkForConsecutiveCoordinates(moveSet: List<Coordinates>, bounds: Int): Boolean {
+private fun checkForConsecutiveCoordinates(moveSet: List<Coordinates>, bounds: Int): Boolean {
     // Not enough moves to win
     if (moveSet.count() < bounds) return false
 

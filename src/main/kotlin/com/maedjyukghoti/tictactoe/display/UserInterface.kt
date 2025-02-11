@@ -86,7 +86,7 @@ sealed interface UserInterface {
          */
         private fun parseInput(input: String): UserIntent =
             when (input[0]) {
-                'm' -> Coordinates.parse(input.substring(1).trim())
+                'm' -> parseCoordinates(input.substring(1).trim())
                     .fold(
                         success = { UserIntent.Move(it) },
                         failure = { UserIntent.Error(it) }
@@ -219,13 +219,29 @@ sealed interface UserInterface {
                     UndoError.RequestTooLarge -> "Requested more moves than are present"
                 }
 
-            fun buildGameOptionsErrorMessage(gameOptionsError: GameOptionsError): String =
+            private fun buildGameOptionsErrorMessage(gameOptionsError: GameOptionsError): String =
                 listOfNotNull(
                     if (gameOptionsError.boardSize.second) "board size (${gameOptionsError.boardSize.first})" else null,
                     if (gameOptionsError.numberOfHumans.second) "number of humans (${gameOptionsError.numberOfHumans.first})" else null,
                     if (gameOptionsError.humanPosition.second) "human position (${gameOptionsError.humanPosition.first})" else null,
                     if (gameOptionsError.botLevel.second) "bot level (${gameOptionsError.botLevel.first})" else null
                 ).joinToString(separator = ", ", prefix = "Invalid options: ")
+
+            /**
+             * Parse a string for coordinates
+             *
+             * @param input A string that may contain usable info for com.maedjyukghoti.tictactoe.tictactoe
+             * @return A [Result] containing the [Coordinates] entered by the [PlayerInfo] or a [Throwable]
+             */
+            fun parseCoordinates(input: String): Result<Coordinates, InputError> {
+                val split = input.split(" ")
+                if (split.size != 2) return Err(InputError.InvalidCoordinates(input))
+
+                val x = split[0].toIntOrNull() ?: return Err(InputError.InvalidCoordinates(input))
+                val y = split[1].toIntOrNull() ?: return Err(InputError.InvalidCoordinates(input))
+
+                return Ok(Coordinates(x, y))
+            }
         }
     }
 }
