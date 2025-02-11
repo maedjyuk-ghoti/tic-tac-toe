@@ -1,9 +1,10 @@
+package com.maedjyukghoti.tictactoe.logic.players
+
 import com.maedjyukghoti.tictactoe.logic.Board
 import com.maedjyukghoti.tictactoe.logic.Coordinates
 import com.maedjyukghoti.tictactoe.logic.MoveRequest
 import com.maedjyukghoti.tictactoe.logic.PlayerInfo
 import org.junit.Test
-import com.maedjyukghoti.tictactoe.logic.players.getWinningCoordinates
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 

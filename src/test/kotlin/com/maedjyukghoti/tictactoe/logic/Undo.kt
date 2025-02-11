@@ -1,7 +1,6 @@
-import com.maedjyukghoti.tictactoe.logic.Board
-import com.maedjyukghoti.tictactoe.logic.Coordinates
-import com.maedjyukghoti.tictactoe.logic.MoveRequest
-import com.maedjyukghoti.tictactoe.logic.PlayerInfo
+package com.maedjyukghoti.tictactoe.logic
+
+import getEmptyBoard
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

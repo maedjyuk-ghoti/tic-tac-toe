@@ -19,11 +19,6 @@ sealed interface UserInterface {
     fun render(state: AppState)
 
     /**
-     * A programmatic way of interacting with this UI
-     */
-    fun interact(intent: UserIntent)
-
-    /**
      * Cleans up any background work or the UI
      */
     suspend fun destroy()
@@ -70,10 +65,6 @@ sealed interface UserInterface {
             if (state.error != null) {
                 println(getErrorString(state.error))
             }
-        }
-
-        override fun interact(intent: UserIntent) {
-            TODO("Not yet implemented")
         }
 
         override suspend fun destroy() {

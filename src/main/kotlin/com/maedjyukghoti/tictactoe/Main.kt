@@ -35,6 +35,7 @@ fun main(args: Array<String>) = runBlocking {
             .collect { userIntent -> state.value = state.value.handleAction(userIntent) }
     }
 
+    // Let any bots have a chance to play
     val botIntentToGameStateJob = launch {
         state.takeWhile { appState -> appState != AppState.Exit }
             .collect { appState ->
