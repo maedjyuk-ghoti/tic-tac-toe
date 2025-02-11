@@ -3,82 +3,71 @@ package com.maedjyukghoti.tictactoe.logic
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
+import com.maedjyukghoti.tictactoe.GameError
+import com.maedjyukghoti.tictactoe.MoveError
+import com.maedjyukghoti.tictactoe.UndoError
 
 data class GameOptions(val boardSize: Int, val numberOfHumans: Int, val humanPosition: Int, val botLevel: Int) {
     companion object {
-        fun parse(opts: Map<String, List<String>>): Result<GameOptions, Throwable> {
-            val gameOptions = GameOptions(
+        fun parse(opts: Map<String, List<String>>): Result<GameOptions, InvalidGameOptions> =
+            validateGameOptions(
                 boardSize = opts["--board-size"]?.firstOrNull()?.toInt() ?: 3,
                 numberOfHumans = opts["--number-of-humans"]?.firstOrNull()?.toInt() ?: 2,
                 humanPosition = opts["--human-position"]?.firstOrNull()?.toInt() ?: 0,
                 botLevel = opts["--bot-level"]?.firstOrNull()?.toInt() ?: 0,
             )
 
-            if (gameOptions.boardSize < 1) return Err(Throwable("Sorry. Only positive board sizes are supported at the moment."))
-            if (gameOptions.numberOfHumans > 2) return Err(Throwable("Sorry. I only supports 2 players at the moment."))
-            if (gameOptions.numberOfHumans + gameOptions.humanPosition < 2) return Err(Throwable("Must set player position if less than 2 humans will be playing."))
+        private fun validateGameOptions(boardSize: Int, numberOfHumans: Int, humanPosition: Int, botLevel: Int): Result<GameOptions, InvalidGameOptions> {
+            val isBoardSizeInvalid = boardSize < 1
+            val isNumberOfHumansInvalid = numberOfHumans > 2
+            val isHumanPositionInvalid = numberOfHumans + humanPosition < 2
+            val isBotLevelInvalid = botLevel in 1..3
 
-            return Ok(gameOptions)
+            return if (isBoardSizeInvalid || isNumberOfHumansInvalid || isHumanPositionInvalid || isBotLevelInvalid)
+                Err(InvalidGameOptions(isBoardSizeInvalid, isNumberOfHumansInvalid, isHumanPositionInvalid, isBotLevelInvalid))
+            else
+                Ok(GameOptions(boardSize, numberOfHumans, humanPosition, botLevel))
         }
     }
 }
+
+data class InvalidGameOptions(
+    val isBoardSizeInvalid: Boolean,
+    val isNumberOfHumansInvalid: Boolean,
+    val isHumanPositionInvalid: Boolean,
+    val isBotLevelInvalid: Boolean,
+)
 
 /**
  * A pair of X, Y coordinates.
  *
  * Convenience class to keep in line with a Data/Domain Oriented approach.
  */
-data class Coordinates(val x: Int, val y: Int) {
-    companion object {
-        /**
-         * Parse a string for coordinates
-         *
-         * @param input A string that may contain usable info for com.maedjyukghoti.tictactoe.tictactoe
-         * @return A [Result] containing the [Coordinates] entered by the [PlayerInfo] or a [Throwable]
-         */
-        fun parse(input: String): Result<Coordinates, InputError> {
-            val split = input.split(" ")
-            if (split.size != 2) return Err(InputError.InvalidCoordinates(input))
-
-            val x = split[0].toIntOrNull() ?: return Err(InputError.InvalidCoordinates(input))
-            val y = split[1].toIntOrNull() ?: return Err(InputError.InvalidCoordinates(input))
-
-            return Ok(Coordinates(x, y))
-        }
-    }
-}
+data class Coordinates(val x: Int, val y: Int)
 
 /**
  * Players available for a game.
- *
- * @param symbol A symbol to represent the player on the grid
  */
-enum class PlayerInfo(val symbol: Char) {
-    None(' '),
-    One('X'),
-    Two('O');
+enum class PlayerInfo {
+    None,
+    One,
+    Two;
 
     companion object {
         fun backUp(playerInfo: PlayerInfo, times: Int): PlayerInfo {
-            val index = values().indexOf(playerInfo)
-            val previousIndex = index - (times % values().lastIndex)
-            val adjustedIndex = if (previousIndex < 1) values().lastIndex + previousIndex else previousIndex
-            return values()[adjustedIndex]
-        }
-
-        fun previousPlayer(playerInfo: PlayerInfo): PlayerInfo {
-            val index = values().indexOf(playerInfo)
-            val previousIndex = if (index - 1 < 1) values().lastIndex else index - 1
-            return values()[previousIndex]
+            val index = entries.indexOf(playerInfo)
+            val previousIndex = index - (times % entries.toTypedArray().lastIndex)
+            val adjustedIndex = if (previousIndex < 1) entries.toTypedArray().lastIndex + previousIndex else previousIndex
+            return entries[adjustedIndex]
         }
 
         /**
          * Given a player, return the next player
          */
         fun nextPlayer(playerInfo: PlayerInfo): PlayerInfo {
-            val index = values().indexOf(playerInfo)
-            val nextIndex = if (index + 1 > values().lastIndex) 1 else index + 1
-            return values()[nextIndex]
+            val index = entries.indexOf(playerInfo)
+            val nextIndex = if (index + 1 > entries.toTypedArray().lastIndex) 1 else index + 1
+            return entries[nextIndex]
         }
     }
 }
@@ -98,15 +87,30 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
             .filterNot(playedCoordinates::contains)
     }
 
-    fun totalMovesAllowed(): Int {
-        return bounds * bounds
-    }
+    fun totalMovesAllowed(): Int =
+        bounds * bounds
 
-    fun undoMove(times: Int = 1): Result<Board, GameError> {
-        if (moves.isEmpty()) return Err(UndoError.NoMovesToUndo)
-        if (times > moves.count()) return Err(UndoError.RequestTooLarge)
-        return Ok(Board(moves.subList(0, moves.count() - times), bounds))
-    }
+    fun undoMove(times: Int = 1): Result<Board, GameError> =
+        if (moves.isEmpty()) Err(UndoError.NoMovesToUndo)
+        else if (times > moves.count()) Err(UndoError.RequestTooLarge)
+        else Ok(Board(moves.subList(0, moves.count() - times), bounds))
+
+    /** Return a new [Board] where [MoveRequest] is played **/
+    fun makeMove(request: MoveRequest): Board =
+        copy(moves = moves.plus(request))
+
+    /** Return [MoveRequest] if it's valid on [Board] **/
+    fun validate(request: MoveRequest): Result<MoveRequest, MoveError> =
+        if (!isValidCoordinate(request.coordinates.x, bounds)) Err(MoveError.InvalidCoordinates(request.coordinates))
+        else if (!isValidCoordinate(request.coordinates.y, bounds)) Err(MoveError.InvalidCoordinates(request.coordinates))
+        else if (areCoordinatesTaken(request.coordinates, moves)) Err(MoveError.CoordinateTaken)
+        else Ok(request)
+
+    private fun isValidCoordinate(coordinate: Int, bounds: Int): Boolean =
+        (coordinate < bounds) && (coordinate >= 0)
+
+    private fun areCoordinatesTaken(coordinates: Coordinates, moves: List<MoveRequest>): Boolean =
+        moves.firstOrNull { moveRequest -> moveRequest.coordinates == coordinates } != null
 
     /** Check the [Board] for a winning player. Return [PlayerInfo.None] if no winner is found. **/
     @Deprecated(message = "Use checkForWinner(board: Board) instead", replaceWith = ReplaceWith(expression = "checkForWinner(this)"))
@@ -121,7 +125,7 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
                 if (square == null) break // square isn't used, can't win on this column
                 else if (lastPlayerInfoFound == PlayerInfo.None) lastPlayerInfoFound = square // 1st used square found
                 else if (lastPlayerInfoFound != square) break // a player doesn't own consecutive squares
-                else if (lastPlayerInfoFound == square) { // a player owns consecutive squares
+                else /* if (lastPlayerInfoFound == square) */ { // a player owns consecutive squares
                     if (j == bounds - 1) return lastPlayerInfoFound
                     else continue
                 }
@@ -136,7 +140,7 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
                 if (square == null) break // square isn't used, can't win on this row
                 else if (lastPlayerInfoFound == PlayerInfo.None) lastPlayerInfoFound = square // 1st used square found
                 else if (lastPlayerInfoFound != square) break // a player doesn't own consecutive squares
-                else if (lastPlayerInfoFound == square) { // a player owns consecutive squares
+                else /* if (lastPlayerInfoFound == square) */ { // a player owns consecutive squares
                     if (j == bounds - 1) return lastPlayerInfoFound
                     else continue
                 }
@@ -150,7 +154,7 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
             if (square == null) break // square isn't used, can't win on this row
             else if (lastPlayerInfoFound == PlayerInfo.None) lastPlayerInfoFound = square // 1st used square found
             else if (lastPlayerInfoFound != square) break // a player doesn't own consecutive squares
-            else if (lastPlayerInfoFound == square) { // a player owns consecutive squares
+            else /* if (lastPlayerInfoFound == square) */ { // a player owns consecutive squares
                 if (i == bounds - 1) return lastPlayerInfoFound
                 else continue
             }
@@ -163,7 +167,7 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
             if (square == null) break // square isn't used, can't win on this row
             else if (lastPlayerInfoFound == PlayerInfo.None) lastPlayerInfoFound = square // 1st used square found
             else if (lastPlayerInfoFound != square) break // a player doesn't own consecutive squares
-            else if (lastPlayerInfoFound == square) { // a player owns consecutive squares
+            else /* if (lastPlayerInfoFound == square) */ { // a player owns consecutive squares
                 if (i == bounds - 1) return lastPlayerInfoFound
                 else continue
             }
@@ -173,24 +177,15 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
     }
 }
 
-/**
- * Represents the entire state of the game
- *
- * @param board The current game board
- * @param currentPlayerInfo The player whose turn it is to play
- * @param winner The player who has won the game, [PlayerInfo.None] indicates there is no winner
- */
-data class GameState(val board: Board, val currentPlayerInfo: PlayerInfo, val winner: PlayerInfo)
-
 /** Check the [Board] for a winning player. Return [PlayerInfo.None] if no winner is found. **/
 fun checkForWinner(board: Board): PlayerInfo =
-    board.moves.groupBy(MoveRequest::playerInfo, MoveRequest::coordinates)    // Group moves based on who played them
+    board.moves.groupBy(MoveRequest::playerInfo, MoveRequest::coordinates) // Group moves based on who played them
         .asSequence()
         .filter { (_, moveSet) -> moveSet.count() >= board.bounds }
         .firstOrNull { (_, moveSet) -> checkForConsecutiveCoordinates(moveSet, board.bounds) }
         ?.component1() ?: PlayerInfo.None
 
-fun checkForConsecutiveCoordinates(moveSet: List<Coordinates>, bounds: Int): Boolean {
+private fun checkForConsecutiveCoordinates(moveSet: List<Coordinates>, bounds: Int): Boolean {
     // Not enough moves to win
     if (moveSet.count() < bounds) return false
 

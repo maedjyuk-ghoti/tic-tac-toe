@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 plugins {
-    kotlin("jvm") version "2.0.0"
+    kotlin("jvm") version "2.1.0"
     application
 }
 
@@ -15,6 +15,7 @@ repositories {
 
 dependencies {
     implementation("com.michael-bull.kotlin-result:kotlin-result:1.1.12")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
     testImplementation(kotlin("test"))
 }
 
@@ -24,7 +25,7 @@ tasks.test {
 
 tasks.withType<KotlinJvmCompile>().configureEach {
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_21)
+        jvmTarget.set(JvmTarget.JVM_23)
     }
 }
 
