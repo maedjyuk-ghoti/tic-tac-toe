@@ -49,6 +49,9 @@ sealed interface AppState {
                 error = null
             )
 
+        fun getCurrentPlayer(): Player =
+            players.getValue(currentPlayerInfo)
+
         companion object {
             fun createNewGame(gameOptions: GameOptions): Game =
                 Game(

@@ -3,10 +3,8 @@ package com.maedjyukghoti.tictactoe
 import com.github.michaelbull.result.*
 import com.maedjyukghoti.tictactoe.display.*
 import com.maedjyukghoti.tictactoe.logic.*
-import com.maedjyukghoti.tictactoe.logic.players.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlin.time.Duration.Companion.seconds
 
 fun getopt(args: Array<String>): Map<String, List<String>> =
     args.fold(mutableListOf()) { acc: MutableList<MutableList<String>>, s: String ->
