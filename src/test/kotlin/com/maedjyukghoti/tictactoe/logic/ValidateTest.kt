@@ -1,6 +1,6 @@
 package com.maedjyukghoti.tictactoe.logic
 
-import getEmptyBoard
+import com.maedjyukghoti.tictactoe.getEmptyBoard
 import org.junit.Test
 import kotlin.test.assertNotNull
 

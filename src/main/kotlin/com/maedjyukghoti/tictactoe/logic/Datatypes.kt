@@ -149,7 +149,9 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
                     lastPlayerInfoFound = square // 1st used square found
                 } else if (lastPlayerInfoFound != square) {
                     break // a player doesn't own consecutive squares
-                } else /* if (lastPlayerInfoFound == square) */ { // a player owns consecutive squares
+                } else {
+                    // if (lastPlayerInfoFound == square)
+                    // a player owns consecutive squares
                     if (j == bounds - 1) {
                         return lastPlayerInfoFound
                     } else {
@@ -170,7 +172,9 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
                     lastPlayerInfoFound = square // 1st used square found
                 } else if (lastPlayerInfoFound != square) {
                     break // a player doesn't own consecutive squares
-                } else /* if (lastPlayerInfoFound == square) */ { // a player owns consecutive squares
+                } else {
+                    // if (lastPlayerInfoFound == square)
+                    // a player owns consecutive squares
                     if (j == bounds - 1) {
                         return lastPlayerInfoFound
                     } else {
@@ -190,7 +194,9 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
                 lastPlayerInfoFound = square // 1st used square found
             } else if (lastPlayerInfoFound != square) {
                 break // a player doesn't own consecutive squares
-            } else /* if (lastPlayerInfoFound == square) */ { // a player owns consecutive squares
+            } else {
+                // if (lastPlayerInfoFound == square)
+                // a player owns consecutive squares
                 if (i == bounds - 1) {
                     return lastPlayerInfoFound
                 } else {
@@ -209,7 +215,9 @@ data class Board(val moves: List<MoveRequest>, val bounds: Int) {
                 lastPlayerInfoFound = square // 1st used square found
             } else if (lastPlayerInfoFound != square) {
                 break // a player doesn't own consecutive squares
-            } else /* if (lastPlayerInfoFound == square) */ { // a player owns consecutive squares
+            } else {
+                // if (lastPlayerInfoFound == square)
+                // a player owns consecutive squares
                 if (i == bounds - 1) {
                     return lastPlayerInfoFound
                 } else {
